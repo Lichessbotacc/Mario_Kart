@@ -1,206 +1,797 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>TURBO DASH GP</title>
-<link rel="stylesheet" href="css/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SKYSHARD — Battle Royale Prototyp</title>
+<style>
+  :root{
+    --ink:#0b1220;
+    --panel:#101a2c;
+    --panel2:#16233a;
+    --accent:#5be7c4;
+    --accent2:#ff5d73;
+    --gold:#ffcf5c;
+    --text:#eaf2ff;
+    --dim:#8ea3c4;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}
+  #canvasWrap{position:fixed;inset:0;}
+  canvas{display:block;width:100%;height:100%;touch-action:none;}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
+  .hud-el{position:absolute;pointer-events:auto;}
+
+  #topbar{top:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;}
+  .pill{background:rgba(16,26,44,.75);backdrop-filter:blur(6px);border:1px solid rgba(91,231,196,.25);
+    border-radius:999px;padding:6px 16px;color:var(--text);font-size:13px;font-weight:600;letter-spacing:.3px;
+    display:flex;align-items:center;gap:6px;}
+  .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);}
+
+  #healthWrap{bottom:120px;left:16px;width:200px;}
+  #healthBarBg{height:14px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);overflow:hidden;}
+  #healthBar{height:100%;width:100%;background:linear-gradient(90deg,var(--accent2),#ff9a6b);transition:width .25s;}
+  #healthLabel{color:var(--text);font-size:11px;margin-bottom:4px;letter-spacing:1px;opacity:.8;text-transform:uppercase;}
+
+  #matWrap{bottom:96px;left:16px;display:flex;gap:6px;}
+  .matChip{background:rgba(16,26,44,.75);border:1px solid rgba(255,207,92,.3);border-radius:8px;padding:4px 9px;
+    color:var(--gold);font-size:12px;font-weight:700;}
+
+  #crosshair{top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;pointer-events:none;}
+  #crosshair::before,#crosshair::after{content:'';position:absolute;background:var(--accent);}
+  #crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-1px);}
+  #crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-1px);}
+
+  #zoneInfo{top:14px;right:14px;text-align:right;}
+  #zoneTimer{color:var(--gold);font-size:22px;font-weight:800;letter-spacing:1px;}
+  #zoneSub{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;}
+
+  #killfeed{top:60px;right:14px;width:220px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+  .killmsg{background:rgba(16,26,44,.7);border-left:3px solid var(--accent2);color:var(--text);font-size:12px;
+    padding:5px 10px;border-radius:6px;opacity:0;animation:kf 4s ease forwards;}
+  @keyframes kf{0%{opacity:0;transform:translateX(20px);}10%{opacity:1;transform:translateX(0);}80%{opacity:1;}100%{opacity:0;}}
+
+  #buildBar{bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;}
+  .buildBtn{width:56px;height:56px;border-radius:14px;background:rgba(16,26,44,.8);border:2px solid rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:center;color:var(--text);font-size:22px;position:relative;}
+  .buildBtn.active{border-color:var(--accent);box-shadow:0 0 14px rgba(91,231,196,.5);}
+  .buildBtn .key{position:absolute;bottom:2px;right:5px;font-size:9px;color:var(--dim);}
+
+  #fireBtn{bottom:100px;right:24px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(255,93,115,.35),rgba(255,93,115,.1));
+    border:2px solid rgba(255,93,115,.6);color:var(--text);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;}
+  #jumpBtn{bottom:190px;right:24px;width:60px;height:60px;border-radius:50%;background:rgba(91,231,196,.15);
+    border:2px solid rgba(91,231,196,.5);color:var(--text);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+
+  #joyZone{bottom:16px;left:16px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);}
+  #joyStick{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(91,231,196,.35);border:1px solid rgba(91,231,196,.7);
+    top:37px;left:37px;pointer-events:none;}
+
+  #startScreen,#endScreen{position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at 50% 20%,#182645,#050810 70%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text);text-align:center;padding:20px;}
+  #startScreen h1,#endScreen h1{font-size:clamp(38px,9vw,72px);margin:0;letter-spacing:4px;font-weight:900;
+    background:linear-gradient(90deg,var(--accent),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #startScreen p,#endScreen p{color:var(--dim);max-width:480px;line-height:1.6;font-size:14px;margin-top:10px;}
+  .bigBtn{margin-top:26px;padding:16px 44px;border-radius:999px;background:linear-gradient(90deg,var(--accent),#3fd6b0);
+    border:none;color:#04231c;font-weight:900;font-size:16px;letter-spacing:1px;cursor:pointer;}
+  #ctrlHint{margin-top:30px;display:flex;gap:22px;flex-wrap:wrap;justify-content:center;}
+  .hintCard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);}
+  #loadBar{width:260px;height:6px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-top:22px;}
+  #loadFill{height:100%;width:0%;background:var(--accent);transition:width .2s;}
+
+  .hidden{display:none !important;}
+</style>
 </head>
 <body>
 
-<!-- ====================== LOADING SCREEN ====================== -->
-<div id="screen-loading" class="screen active">
-  <div class="loading-wrap">
-    <div class="logo-mark">TURBO<span>DASH</span>GP</div>
-    <div class="loading-bar-track"><div id="loading-bar-fill" class="loading-bar-fill"></div></div>
-    <div id="loading-label" class="loading-label">Warming up engines…</div>
+<div id="canvasWrap"></div>
+
+<div id="startScreen">
+  <div class="pill" style="margin-bottom:18px;"><span class="dot"></span>PROTOTYP — EIGENSTÄNDIGES SPIEL</div>
+  <h1>SKYSHARD</h1>
+  <p>Ein eigenständiger Battle-Royale-Prototyp: baue Deckung, sammle Loot, überlebe die schrumpfende Sturmzone gegen KI-Gegner. Läuft im Browser, auch auf dem iPad.</p>
+  <div id="loadBar"><div id="loadFill"></div></div>
+  <button class="bigBtn hidden" id="playBtn">DROP STARTEN</button>
+  <div id="ctrlHint">
+    <div class="hintCard">🖥️ Desktop: WASD + Maus, Leertaste = Springen, Linksklick = Schießen, 1/2/3 = Bauen</div>
+    <div class="hintCard">📱 iPad: linker Joystick = Bewegen, rechte Seite ziehen = Umschauen, Buttons = Bauen/Schießen/Springen</div>
   </div>
 </div>
 
-<!-- ====================== TITLE SCREEN ====================== -->
-<div id="screen-title" class="screen">
-  <div class="title-bg-glow"></div>
-  <div class="title-logo">TURBO<span>DASH</span><small>GP</small></div>
-  <div class="title-prompt">TAP TO START</div>
-  <div class="title-footer">v1.0 · an original arcade kart racer</div>
+<div id="endScreen" class="hidden">
+  <h1 id="endTitle">GESCHAFFT</h1>
+  <p id="endText"></p>
+  <button class="bigBtn" id="restartBtn">NOCHMAL SPIELEN</button>
 </div>
 
-<!-- ====================== MAIN MENU ====================== -->
-<div id="screen-main" class="screen">
-  <div class="panel-header"><h1>MAIN MENU</h1></div>
-  <div class="menu-stack">
-    <button class="menu-btn" data-action="mode-select">Grand Prix / Race</button>
-    <button class="menu-btn" data-action="time-trial-select">Time Trial</button>
-    <button class="menu-btn" data-action="battle-select">Balloon Battle</button>
-    <button class="menu-btn" data-action="stats">Garage &amp; Stats</button>
-    <button class="menu-btn" data-action="settings">Settings</button>
+<div id="hud" class="hidden">
+  <div class="hud-el" id="topbar">
+    <div class="pill"><span class="dot"></span><span id="playersLeft">— Spieler übrig</span></div>
   </div>
-  <div class="profile-badge" id="profile-badge">PROFILE: —</div>
-</div>
 
-<!-- ====================== MODE SELECT ====================== -->
-<div id="screen-mode" class="screen">
-  <div class="panel-header"><h1>SELECT MODE</h1><button class="back-btn" data-back="screen-main">◀ Back</button></div>
-  <div class="menu-stack">
-    <button class="menu-btn" data-action="cup-select" data-mode="gp">Grand Prix (3 races, CPU field)</button>
-    <button class="menu-btn" data-action="cup-select" data-mode="vs">VS Race (single race, CPU field)</button>
+  <div class="hud-el" id="zoneInfo">
+    <div id="zoneSub">Sturm zieht sich zusammen</div>
+    <div id="zoneTimer">--</div>
   </div>
-  <div class="cc-select" id="cc-select">
-    <div class="cc-label">Engine Class</div>
-    <div class="cc-options">
-      <button class="cc-btn active" data-cc="100">100cc</button>
-      <button class="cc-btn" data-cc="150">150cc</button>
-      <button class="cc-btn" data-cc="200">200cc Mirror</button>
-    </div>
+
+  <div class="hud-el" id="killfeed"></div>
+
+  <div class="hud-el" id="crosshair"></div>
+
+  <div class="hud-el" id="healthWrap">
+    <div id="healthLabel">Leben</div>
+    <div id="healthBarBg"><div id="healthBar"></div></div>
   </div>
-</div>
 
-<!-- ====================== CUP / TRACK SELECT ====================== -->
-<div id="screen-cup" class="screen">
-  <div class="panel-header"><h1 id="cup-title">SELECT CUP</h1><button class="back-btn" data-back="screen-mode">◀ Back</button></div>
-  <div id="cup-grid" class="cup-grid"></div>
-</div>
-
-<!-- ====================== TIME TRIAL TRACK SELECT ====================== -->
-<div id="screen-tt-select" class="screen">
-  <div class="panel-header"><h1>TIME TRIAL — SELECT TRACK</h1><button class="back-btn" data-back="screen-main">◀ Back</button></div>
-  <div id="tt-grid" class="cup-grid"></div>
-</div>
-
-<!-- ====================== BATTLE SELECT ====================== -->
-<div id="screen-battle-select" class="screen">
-  <div class="panel-header"><h1>BALLOON BATTLE</h1><button class="back-btn" data-back="screen-main">◀ Back</button></div>
-  <div class="menu-stack">
-    <button class="menu-btn" data-action="char-select" data-mode="battle">Start Battle (3 CPU rivals)</button>
+  <div class="hud-el" id="matWrap">
+    <div class="matChip">🪵 <span id="matWood">100</span></div>
   </div>
-</div>
 
-<!-- ====================== CHARACTER SELECT ====================== -->
-<div id="screen-char" class="screen">
-  <div class="panel-header"><h1>SELECT RACER</h1><button class="back-btn" data-back-dynamic>◀ Back</button></div>
-  <div class="char-layout">
-    <div id="char-grid" class="char-grid"></div>
-    <div class="char-detail">
-      <div id="char-portrait" class="char-portrait"></div>
-      <div id="char-name" class="char-name">—</div>
-      <div id="char-class" class="char-class">—</div>
-      <div class="stat-bars" id="char-stats"></div>
-      <button class="menu-btn confirm-btn" data-action="kart-select">Confirm Racer ▶</button>
-    </div>
+  <div class="hud-el" id="buildBar">
+    <div class="buildBtn" data-b="wall"><span>▮</span><span class="key">1</span></div>
+    <div class="buildBtn" data-b="floor"><span>▬</span><span class="key">2</span></div>
+    <div class="buildBtn" data-b="ramp"><span>◢</span><span class="key">3</span></div>
   </div>
-</div>
 
-<!-- ====================== KART SELECT ====================== -->
-<div id="screen-kart" class="screen">
-  <div class="panel-header"><h1>SELECT KART</h1><button class="back-btn" data-back="screen-char">◀ Back</button></div>
-  <div class="char-layout">
-    <div id="kart-grid" class="char-grid"></div>
-    <div class="char-detail">
-      <div id="kart-portrait" class="char-portrait kart-portrait"></div>
-      <div id="kart-name" class="char-name">—</div>
-      <div class="stat-bars" id="kart-stats"></div>
-      <button class="menu-btn confirm-btn" data-action="start-race">Race! ▶</button>
-    </div>
-  </div>
-</div>
-
-<!-- ====================== RACE LOADING ====================== -->
-<div id="screen-race-loading" class="screen">
-  <div class="loading-wrap">
-    <div id="race-loading-track" class="rl-track-name">TRACK</div>
-    <div class="loading-bar-track"><div id="race-loading-fill" class="loading-bar-fill"></div></div>
-    <div class="rl-tip" id="rl-tip">Tip: Hold drift then release for a Mini-Turbo!</div>
-  </div>
-</div>
-
-<!-- ====================== HUD (in-race) ====================== -->
-<div id="screen-hud" class="screen hud-screen">
-  <canvas id="gl-canvas"></canvas>
-
-  <div class="hud-top-left">
-    <div id="hud-position" class="hud-position">1<span>st</span></div>
-    <div id="hud-lap" class="hud-lap">LAP 1/3</div>
-  </div>
-  <div class="hud-top-right" id="hud-timer">00:00.000</div>
-
-  <div class="hud-item-slot" id="hud-item-slot"><div class="item-icon" id="hud-item-icon"></div></div>
-  <div class="hud-minimap" id="hud-minimap"><canvas id="minimap-canvas" width="150" height="150"></canvas></div>
-
-  <div id="hud-message" class="hud-message"></div>
-  <div id="hud-lap-banner" class="hud-lap-banner"></div>
-
-  <button id="btn-pause" class="btn-pause">II</button>
-
-  <!-- touch controls -->
-  <div id="touch-controls" class="touch-controls">
-    <div class="joystick-zone" id="joystick-zone">
-      <div class="joystick-base">
-        <div class="joystick-stick" id="joystick-stick"></div>
-      </div>
-    </div>
-    <div class="action-zone">
-      <button class="ctl-btn ctl-item" id="btn-item">🎁</button>
-      <button class="ctl-btn ctl-trick" id="btn-trick">TRICK</button>
-      <button class="ctl-btn ctl-drift" id="btn-drift">DRIFT</button>
-      <button class="ctl-btn ctl-brake" id="btn-brake">▼</button>
-      <button class="ctl-btn ctl-accel" id="btn-accel">▲</button>
-    </div>
-  </div>
-</div>
-
-<!-- ====================== PAUSE MENU ====================== -->
-<div id="screen-pause" class="screen overlay-screen">
-  <div class="pause-panel">
-    <h1>PAUSED</h1>
-    <button class="menu-btn" data-action="resume">Resume</button>
-    <button class="menu-btn" data-action="restart-race">Restart</button>
-    <button class="menu-btn" data-action="settings">Settings</button>
-    <button class="menu-btn" data-action="quit-race">Quit to Menu</button>
-  </div>
-</div>
-
-<!-- ====================== RESULTS SCREEN ====================== -->
-<div id="screen-results" class="screen">
-  <div class="panel-header"><h1 id="results-title">RACE RESULTS</h1></div>
-  <div id="results-table" class="results-table"></div>
-  <button class="menu-btn confirm-btn" id="results-continue" data-action="results-continue">Continue ▶</button>
-</div>
-
-<!-- ====================== TROPHY CEREMONY ====================== -->
-<div id="screen-trophy" class="screen">
-  <div class="trophy-wrap">
-    <div class="trophy-icon" id="trophy-icon">🏆</div>
-    <div id="trophy-text" class="trophy-text">GOLD TROPHY!</div>
-    <div id="trophy-cup" class="trophy-cup">—</div>
-  </div>
-  <button class="menu-btn confirm-btn" data-action="to-main">Continue ▶</button>
-</div>
-
-<!-- ====================== STATS / GARAGE ====================== -->
-<div id="screen-stats" class="screen">
-  <div class="panel-header"><h1>GARAGE &amp; STATS</h1><button class="back-btn" data-back="screen-main">◀ Back</button></div>
-  <div id="stats-body" class="stats-body"></div>
-</div>
-
-<!-- ====================== SETTINGS ====================== -->
-<div id="screen-settings" class="screen">
-  <div class="panel-header"><h1>SETTINGS</h1><button class="back-btn" data-back-dynamic>◀ Back</button></div>
-  <div class="settings-list" id="settings-list"></div>
+  <div class="hud-el" id="joyZone"><div id="joyStick"></div></div>
+  <div class="hud-el" id="jumpBtn">SPRUNG</div>
+  <div class="hud-el" id="fireBtn">FEUER</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/save.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/characters.js"></script>
-<script src="js/track.js"></script>
-<script src="js/physics.js"></script>
-<script src="js/items.js"></script>
-<script src="js/ai.js"></script>
-<script src="js/input.js"></script>
-<script src="js/rendering.js"></script>
-<script src="js/network.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/game.js"></script>
-<script src="js/main.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   SKYSHARD — eigenständiger Battle-Royale-Prototyp
+   Kein Fortnite-Content: eigener Low-Poly-Stil, eigene Namen,
+   eigene Farben/Formen. Reine Genre-Inspiration.
+============================================================ */
+
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* ---------------- Basic scene setup ---------------- */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8fd3f4);
+scene.fog = new THREE.Fog(0x8fd3f4, 40, 260);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.getElementById('canvasWrap').appendChild(renderer.domElement);
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ---------------- Lighting ---------------- */
+const hemi = new THREE.HemisphereLight(0xffffff, 0x6d8f5c, 0.9);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff3d6, 1.1);
+sun.position.set(60,90,40);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-120; sun.shadow.camera.right=120;
+sun.shadow.camera.top=120; sun.shadow.camera.bottom=-120;
+sun.shadow.camera.far=300;
+scene.add(sun);
+
+/* ---------------- World: island terrain ---------------- */
+const WORLD_SIZE = 220;
+const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 60, 60);
+groundGeo.rotateX(-Math.PI/2);
+// gentle procedural hills
+const posAttr = groundGeo.attributes.position;
+for(let i=0;i<posAttr.count;i++){
+  const x = posAttr.getX(i), z = posAttr.getZ(i);
+  const h = Math.sin(x*0.05)*Math.cos(z*0.05)*3 + Math.sin(x*0.11+z*0.07)*1.4;
+  posAttr.setY(i, h);
+}
+groundGeo.computeVertexNormals();
+const groundMat = new THREE.MeshStandardMaterial({color:0x6fbf6b, flatShading:true, roughness:1});
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.receiveShadow = true;
+scene.add(ground);
+
+function terrainHeightAt(x,z){
+  const h = Math.sin(x*0.05)*Math.cos(z*0.05)*3 + Math.sin(x*0.11+z*0.07)*1.4;
+  return h;
+}
+
+// water skirt
+const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE*4, WORLD_SIZE*4);
+waterGeo.rotateX(-Math.PI/2);
+const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({color:0x2f7ec9, transparent:true, opacity:.85}));
+water.position.y = -2.4;
+scene.add(water);
+
+// scattered low-poly trees & rocks (own art style: simple cones/spheres)
+const treeGroup = new THREE.Group();
+function makeTree(x,z){
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2,6), new THREE.MeshStandardMaterial({color:0x8a5a3b, flatShading:true}));
+  trunk.position.y = 1;
+  trunk.castShadow = true;
+  const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.6,3.2,7), new THREE.MeshStandardMaterial({color:0x2f9e52, flatShading:true}));
+  leaves.position.y = 3.2;
+  leaves.castShadow = true;
+  g.add(trunk, leaves);
+  const y = terrainHeightAt(x,z);
+  g.position.set(x,y,z);
+  return g;
+}
+for(let i=0;i<70;i++){
+  const x = (Math.random()-0.5)*WORLD_SIZE*0.9;
+  const z = (Math.random()-0.5)*WORLD_SIZE*0.9;
+  if(Math.abs(x)<8 && Math.abs(z)<8) continue;
+  treeGroup.add(makeTree(x,z));
+}
+scene.add(treeGroup);
+
+// simple hut structures (own design, not fortnite POIs) - just landmark shapes
+function makeHut(x,z,color){
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.BoxGeometry(6,3,6), new THREE.MeshStandardMaterial({color:color, flatShading:true}));
+  base.position.y = 1.5;
+  base.castShadow = true; base.receiveShadow = true;
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(4.8,2.6,4), new THREE.MeshStandardMaterial({color:0x8a3b3b, flatShading:true}));
+  roof.rotation.y = Math.PI/4;
+  roof.position.y = 4.3;
+  roof.castShadow = true;
+  g.add(base, roof);
+  const y = terrainHeightAt(x,z);
+  g.position.set(x,y,z);
+  return g;
+}
+const landmarks = [
+  makeHut(30,20,0xd9b87c), makeHut(-40,10,0xc7a568), makeHut(15,-45,0xd9b87c),
+  makeHut(-25,-30,0xc7a568), makeHut(50,-15,0xd9b87c)
+];
+landmarks.forEach(h=>scene.add(h));
+
+/* ---------------- Collidable colliders (simple boxes) ---------------- */
+const staticColliders = []; // {box: THREE.Box3}
+landmarks.forEach(h=>{
+  const box = new THREE.Box3().setFromObject(h);
+  staticColliders.push(box);
+});
+
+/* ---------------- Player ---------------- */
+const player = {
+  pos: new THREE.Vector3(0, 8, 0),
+  vel: new THREE.Vector3(),
+  yaw: 0, pitch: 0,
+  onGround: false,
+  health: 100,
+  wood: 100,
+  alive: true,
+  speed: 8,
+  jumpPower: 8.5,
+};
+const GRAVITY = -22;
+const PLAYER_RADIUS = 0.5;
+const PLAYER_HEIGHT = 1.7;
+
+/* ---------------- Build system ---------------- */
+const buildPieces = []; // {mesh, box}
+let currentBuildType = 'wall';
+const buildMat = new THREE.MeshStandardMaterial({color:0xe8d9a8, flatShading:true, roughness:.9});
+const buildMatEdge = new THREE.MeshStandardMaterial({color:0xb89a5c, flatShading:true});
+
+function ghostMeshFor(type){
+  let geo;
+  if(type==='wall') geo = new THREE.BoxGeometry(4,4,0.35);
+  else if(type==='floor') geo = new THREE.BoxGeometry(4,0.35,4);
+  else geo = new THREE.BoxGeometry(4,0.35,5.6);
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x5be7c4, transparent:true, opacity:.45}));
+  return m;
+}
+let ghost = ghostMeshFor('wall');
+ghost.visible = false;
+scene.add(ghost);
+
+function placeBuild(){
+  if(player.wood < 10) return;
+  if(!ghost.visible) return;
+  const geo = currentBuildType==='wall' ? new THREE.BoxGeometry(4,4,0.35)
+            : currentBuildType==='floor' ? new THREE.BoxGeometry(4,0.35,4)
+            : new THREE.BoxGeometry(4,0.35,5.6);
+  const mesh = new THREE.Mesh(geo, buildMat.clone());
+  mesh.position.copy(ghost.position);
+  mesh.rotation.copy(ghost.rotation);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  scene.add(mesh);
+  const box = new THREE.Box3().setFromObject(mesh);
+  buildPieces.push({mesh, box});
+  staticColliders.push(box);
+  player.wood -= 10;
+  document.getElementById('matWood').textContent = player.wood;
+}
+
+function updateGhost(){
+  const dir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0, player.yaw, 0));
+  const base = player.pos.clone().add(dir.clone().multiplyScalar(4.5));
+  base.y = player.pos.y - 0.4;
+  ghost.position.copy(base);
+  ghost.rotation.set(0, player.yaw, 0);
+  if(currentBuildType==='floor'){ ghost.rotation.x=0; ghost.position.y = player.pos.y - 0.9;}
+  if(currentBuildType==='ramp'){ ghost.rotation.x = -0.5; }
+  ghost.geometry.dispose();
+  ghost.geometry = ghostMeshFor(currentBuildType).geometry;
+  ghost.visible = player.alive;
+}
+
+/* ---------------- Bots ---------------- */
+const BOT_COUNT = 11;
+const bots = [];
+const botColors = [0xff5d73,0xffcf5c,0x5be7c4,0xb27bff,0xffa45c,0x7ecbff,0xff8fb1,0xa4e17c,0xffe08a,0x8fd3f4,0xd1a5ff];
+
+function makeBotMesh(color){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5,1.0,4,8), new THREE.MeshStandardMaterial({color, flatShading:true}));
+  body.position.y = 1.1;
+  body.castShadow = true;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.4,10,10), new THREE.MeshStandardMaterial({color:0xffe0c2, flatShading:true}));
+  head.position.y = 2.0;
+  head.castShadow = true;
+  g.add(body, head);
+  return g;
+}
+
+function spawnBot(i){
+  const ang = (i/BOT_COUNT)*Math.PI*2;
+  const r = 60 + Math.random()*40;
+  const x = Math.cos(ang)*r, z = Math.sin(ang)*r;
+  const mesh = makeBotMesh(botColors[i%botColors.length]);
+  mesh.position.set(x, terrainHeightAt(x,z)+1, z);
+  scene.add(mesh);
+  return {
+    mesh, health:100, alive:true,
+    pos:new THREE.Vector3(x,terrainHeightAt(x,z),z),
+    target:new THREE.Vector3(x,0,z),
+    fireTimer: Math.random()*3+2,
+    retarget: 0,
+  };
+}
+for(let i=0;i<BOT_COUNT;i++) bots.push(spawnBot(i));
+let botsAliveCount = BOT_COUNT;
+
+/* ---------------- Zone (storm) ---------------- */
+const zoneRingGeo = new THREE.RingGeometry(1,1.4,64);
+const zoneMat = new THREE.MeshBasicMaterial({color:0x5be7c4, side:THREE.DoubleSide, transparent:true, opacity:.9});
+const zoneRing = new THREE.Mesh(zoneRingGeo, zoneMat);
+zoneRing.rotation.x = -Math.PI/2;
+scene.add(zoneRing);
+
+const zone = {
+  center: new THREE.Vector2(0,0),
+  radius: 100,
+  targetRadius: 55,
+  phaseTime: 45,   // seconds until shrink starts
+  shrinking: false,
+  shrinkDuration: 40,
+  shrinkElapsed: 0,
+  stage: 0,
+};
+function updateZoneVisual(){
+  zoneRing.geometry.dispose();
+  zoneRing.geometry = new THREE.RingGeometry(zone.radius-0.4, zone.radius, 96);
+  zoneRing.position.set(zone.center.x, 0.3, zone.center.y);
+}
+updateZoneVisual();
+
+/* ---------------- Projectiles ---------------- */
+const bullets = []; // {mesh, dir, life, owner}
+function spawnBullet(origin, dir, owner){
+  const geo = new THREE.SphereGeometry(0.12,6,6);
+  const mat = new THREE.MeshBasicMaterial({color: owner==='player'?0x5be7c4:0xff5d73});
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(origin);
+  scene.add(mesh);
+  bullets.push({mesh, dir:dir.clone(), life:1.4, owner, pos:origin.clone(), speed:70});
+}
+
+/* ---------------- Input ---------------- */
+const keys = {};
+window.addEventListener('keydown', e=>{
+  keys[e.code]=true;
+  if(e.code==='Digit1') selectBuild('wall');
+  if(e.code==='Digit2') selectBuild('floor');
+  if(e.code==='Digit3') selectBuild('ramp');
+});
+window.addEventListener('keyup', e=> keys[e.code]=false);
+
+let pointerLocked = false;
+renderer.domElement.addEventListener('click', ()=>{
+  if(!isTouch && gameStarted){
+    renderer.domElement.requestPointerLock();
+  }
+});
+document.addEventListener('pointerlockchange', ()=>{
+  pointerLocked = document.pointerLockElement === renderer.domElement;
+});
+window.addEventListener('mousemove', e=>{
+  if(!pointerLocked) return;
+  player.yaw -= e.movementX * 0.0022;
+  player.pitch -= e.movementY * 0.0022;
+  player.pitch = Math.max(-1.2, Math.min(1.2, player.pitch));
+});
+window.addEventListener('mousedown', e=>{
+  if(e.button===0 && pointerLocked && gameStarted) fireWeapon();
+});
+
+function selectBuild(type){
+  currentBuildType = type;
+  document.querySelectorAll('.buildBtn').forEach(b=>b.classList.toggle('active', b.dataset.b===type));
+}
+document.querySelectorAll('.buildBtn').forEach(b=>{
+  b.addEventListener('pointerdown', ()=> selectBuild(b.dataset.b));
+});
+selectBuild('wall');
+
+/* ---- touch controls ---- */
+let joyActive=false, joyStart={x:0,y:0}, joyVec={x:0,y:0};
+const joyZone = document.getElementById('joyZone');
+const joyStick = document.getElementById('joyStick');
+joyZone.addEventListener('pointerdown', e=>{
+  joyActive=true;
+  joyStart.x=e.clientX; joyStart.y=e.clientY;
+});
+window.addEventListener('pointermove', e=>{
+  if(joyActive){
+    let dx=e.clientX-joyStart.x, dy=e.clientY-joyStart.y;
+    const max=45;
+    const len=Math.hypot(dx,dy);
+    if(len>max){dx=dx/len*max; dy=dy/len*max;}
+    joyStick.style.left=(37+dx)+'px';
+    joyStick.style.top=(37+dy)+'px';
+    joyVec.x = dx/max; joyVec.y=dy/max;
+  }
+  if(lookActive){
+    const dx = e.clientX - lookLast.x, dy = e.clientY - lookLast.y;
+    player.yaw -= dx*0.0032;
+    player.pitch -= dy*0.0032;
+    player.pitch = Math.max(-1.2, Math.min(1.2, player.pitch));
+    lookLast.x = e.clientX; lookLast.y = e.clientY;
+  }
+});
+window.addEventListener('pointerup', e=>{
+  if(joyActive){ joyActive=false; joyVec={x:0,y:0}; joyStick.style.left='37px'; joyStick.style.top='37px';}
+  lookActive=false;
+});
+
+let lookActive=false, lookLast={x:0,y:0};
+renderer.domElement.addEventListener('pointerdown', e=>{
+  if(!isTouch) return;
+  if(e.clientX > window.innerWidth*0.42){
+    lookActive=true; lookLast.x=e.clientX; lookLast.y=e.clientY;
+  }
+});
+
+let jumpPressed=false;
+document.getElementById('jumpBtn').addEventListener('pointerdown', ()=>{ jumpPressed=true; });
+document.getElementById('fireBtn').addEventListener('pointerdown', ()=>{ if(gameStarted) fireWeapon(); });
+
+// build placement: tap-hold ghost then release to place -> simplified: single tap on active build button places instantly near crosshair
+document.querySelectorAll('.buildBtn').forEach(b=>{
+  b.addEventListener('pointerup', ()=>{ placeBuild(); });
+});
+window.addEventListener('keydown', e=>{
+  if(e.code==='KeyF' || e.code==='KeyE') placeBuild();
+});
+renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
+window.addEventListener('mousedown', e=>{
+  if(e.button===2 && pointerLocked) placeBuild();
+});
+
+/* ---------------- Weapon / combat ---------------- */
+let fireCooldown = 0;
+function fireWeapon(){
+  if(fireCooldown>0 || !player.alive) return;
+  fireCooldown = 0.22;
+  const dir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
+  const origin = camera.position.clone().add(dir.clone().multiplyScalar(1.2));
+  spawnBullet(origin, dir, 'player');
+  muzzleFlash();
+}
+function muzzleFlash(){
+  document.getElementById('crosshair').style.opacity = 0.4;
+  setTimeout(()=>{document.getElementById('crosshair').style.opacity=1;}, 60);
+}
+
+function killFeed(msg){
+  const el = document.createElement('div');
+  el.className='killmsg';
+  el.textContent = msg;
+  document.getElementById('killfeed').appendChild(el);
+  setTimeout(()=>el.remove(), 4000);
+}
+
+/* ---------------- Game state ---------------- */
+let gameStarted = false;
+let gameOver = false;
+const clock = new THREE.Clock();
+
+document.getElementById('playBtn').addEventListener('click', startGame);
+document.getElementById('restartBtn').addEventListener('click', ()=> location.reload());
+
+function startGame(){
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  gameStarted = true;
+  clock.start();
+}
+
+// fake short "loading" for polish
+let fakeLoad = 0;
+const loadFill = document.getElementById('loadFill');
+const playBtn = document.getElementById('playBtn');
+const loadIv = setInterval(()=>{
+  fakeLoad += 8 + Math.random()*10;
+  if(fakeLoad>=100){ fakeLoad=100; clearInterval(loadIv); playBtn.classList.remove('hidden'); document.getElementById('loadBar').classList.add('hidden');}
+  loadFill.style.width = fakeLoad+'%';
+}, 90);
+
+/* ---------------- Collision helper ---------------- */
+function collidesXZ(pos){
+  const pBox = new THREE.Box3(
+    new THREE.Vector3(pos.x-PLAYER_RADIUS, pos.y, pos.z-PLAYER_RADIUS),
+    new THREE.Vector3(pos.x+PLAYER_RADIUS, pos.y+PLAYER_HEIGHT, pos.z+PLAYER_RADIUS)
+  );
+  for(const box of staticColliders){
+    if(pBox.intersectsBox(box)) return true;
+  }
+  return false;
+}
+function groundHeightAt(x,z){
+  let h = terrainHeightAt(x,z);
+  // check build floors above
+  for(const bp of buildPieces){
+    const b = bp.box;
+    if(x>=b.min.x && x<=b.max.x && z>=b.min.z && z<=b.max.z){
+      h = Math.max(h, b.max.y);
+    }
+  }
+  return h;
+}
+
+/* ---------------- Main loop ---------------- */
+function updatePlayer(dt){
+  if(!player.alive) return;
+  const forward = new THREE.Vector3(Math.sin(player.yaw), 0, -Math.cos(player.yaw)*-1);
+  forward.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  const right = new THREE.Vector3(Math.cos(player.yaw), 0, Math.sin(player.yaw));
+
+  let mv = new THREE.Vector2(0,0);
+  if(keys['KeyW']) mv.y += 1;
+  if(keys['KeyS']) mv.y -= 1;
+  if(keys['KeyA']) mv.x -= 1;
+  if(keys['KeyD']) mv.x += 1;
+  if(isTouch){ mv.x += joyVec.x; mv.y -= joyVec.y; }
+  if(mv.length()>1) mv.normalize();
+
+  const moveDir = new THREE.Vector3();
+  moveDir.addScaledVector(forward, mv.y);
+  moveDir.addScaledVector(right, mv.x);
+
+  const speed = player.speed;
+  const nextPos = player.pos.clone();
+  nextPos.x += moveDir.x*speed*dt;
+  nextPos.z += moveDir.z*speed*dt;
+
+  if(!collidesXZ(new THREE.Vector3(nextPos.x, player.pos.y, player.pos.z))) player.pos.x = nextPos.x;
+  if(!collidesXZ(new THREE.Vector3(player.pos.x, player.pos.y, nextPos.z))) player.pos.z = nextPos.z;
+
+  // jump
+  const wantJump = keys['Space'] || jumpPressed;
+  jumpPressed = false;
+  if(wantJump && player.onGround){
+    player.vel.y = player.jumpPower;
+    player.onGround = false;
+  }
+
+  player.vel.y += GRAVITY*dt;
+  player.pos.y += player.vel.y*dt;
+
+  const gH = groundHeightAt(player.pos.x, player.pos.z);
+  if(player.pos.y <= gH){
+    player.pos.y = gH;
+    player.vel.y = 0;
+    player.onGround = true;
+  }
+
+  // fell in water / out of world -> gentle clamp
+  if(player.pos.y < -3){ player.pos.set(0, 10, 0); player.vel.set(0,0,0); }
+
+  camera.position.copy(player.pos).add(new THREE.Vector3(0, PLAYER_HEIGHT, 0));
+  const lookDir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
+  camera.lookAt(camera.position.clone().add(lookDir));
+
+  updateGhost();
+
+  // storm damage
+  const distToCenter = Math.hypot(player.pos.x-zone.center.x, player.pos.z-zone.center.y);
+  if(distToCenter > zone.radius){
+    damagePlayer(6*dt);
+  }
+}
+
+function damagePlayer(amount){
+  if(!player.alive) return;
+  player.health -= amount;
+  if(player.health <= 0){
+    player.health = 0;
+    player.alive = false;
+    endGame(false);
+  }
+  document.getElementById('healthBar').style.width = Math.max(0,player.health)+'%';
+}
+
+function updateBots(dt){
+  for(const b of bots){
+    if(!b.alive) continue;
+
+    // storm damage for bots too
+    const distC = Math.hypot(b.pos.x-zone.center.x, b.pos.z-zone.center.y);
+    if(distC > zone.radius){
+      b.health -= 5*dt;
+      if(b.health<=0){ killBot(b, 'Sturm'); continue; }
+    }
+
+    b.retarget -= dt;
+    if(b.retarget <= 0){
+      b.retarget = 3 + Math.random()*3;
+      const ang = Math.random()*Math.PI*2;
+      const r = 5 + Math.random()*15;
+      let tx = b.pos.x + Math.cos(ang)*r;
+      let tz = b.pos.z + Math.sin(ang)*r;
+      // bias toward zone center as it shrinks
+      tx = tx*0.85 + zone.center.x*0.15;
+      tz = tz*0.85 + zone.center.y*0.15;
+      b.target.set(tx,0,tz);
+    }
+    const toT = new THREE.Vector2(b.target.x-b.pos.x, b.target.z-b.pos.z);
+    if(toT.length()>0.3){
+      toT.normalize();
+      b.pos.x += toT.x*3.2*dt;
+      b.pos.z += toT.y*3.2*dt;
+      b.mesh.rotation.y = Math.atan2(toT.x, toT.y);
+    }
+    b.pos.y = terrainHeightAt(b.pos.x,b.pos.z);
+    b.mesh.position.set(b.pos.x, b.pos.y+1, b.pos.z);
+
+    // shoot at player occasionally if close-ish
+    const dToPlayer = b.pos.distanceTo(new THREE.Vector3(player.pos.x,b.pos.y,player.pos.z));
+    b.fireTimer -= dt;
+    if(dToPlayer < 45 && player.alive && b.fireTimer<=0){
+      b.fireTimer = 1.6 + Math.random()*1.6;
+      const dir = new THREE.Vector3(player.pos.x-b.pos.x, (player.pos.y+1)-(b.pos.y+1.4), player.pos.z-b.pos.z).normalize();
+      spawnBullet(b.mesh.position.clone(), dir, 'bot');
+    }
+  }
+}
+
+function killBot(b, by){
+  b.alive = false;
+  scene.remove(b.mesh);
+  botsAliveCount--;
+  killFeed((by||'Du')+' hat einen Gegner eliminiert');
+  document.getElementById('playersLeft').textContent = (botsAliveCount+1)+' Spieler übrig';
+  if(botsAliveCount<=0){
+    endGame(true);
+  }
+}
+
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const bl = bullets[i];
+    bl.life -= dt;
+    bl.pos.addScaledVector(bl.dir, bl.speed*dt);
+    bl.mesh.position.copy(bl.pos);
+
+    let hit = false;
+    if(bl.owner==='player'){
+      for(const b of bots){
+        if(!b.alive) continue;
+        if(bl.pos.distanceTo(b.mesh.position) < 1.1){
+          b.health -= 34;
+          hit = true;
+          if(b.health<=0) killBot(b,'Du');
+          break;
+        }
+      }
+    } else {
+      if(player.alive && bl.pos.distanceTo(camera.position) < 1.2){
+        damagePlayer(9);
+        hit = true;
+      }
+    }
+    // ground/structure collision (cheap)
+    if(bl.pos.y < groundHeightAt(bl.pos.x,bl.pos.z)) hit = true;
+
+    if(hit || bl.life<=0){
+      scene.remove(bl.mesh);
+      bullets.splice(i,1);
+    }
+  }
+}
+
+function updateZone(dt){
+  zone.phaseTime -= dt;
+  if(zone.phaseTime<=0 && !zone.shrinking && zone.radius>zone.targetRadius+1){
+    zone.shrinking = true;
+    zone.shrinkElapsed = 0;
+    zone.startRadius = zone.radius;
+  }
+  if(zone.shrinking){
+    zone.shrinkElapsed += dt;
+    const t = Math.min(1, zone.shrinkElapsed/zone.shrinkDuration);
+    zone.radius = zone.startRadius + (zone.targetRadius-zone.startRadius)*t;
+    updateZoneVisual();
+    if(t>=1){
+      zone.shrinking = false;
+      zone.stage++;
+      if(zone.stage < 4){
+        zone.targetRadius = Math.max(10, zone.targetRadius - 20);
+        zone.phaseTime = 30;
+        zone.center.set(zone.center.x + (Math.random()-0.5)*20, zone.center.y + (Math.random()-0.5)*20);
+      }
+    }
+  }
+  const timerEl = document.getElementById('zoneTimer');
+  const subEl = document.getElementById('zoneSub');
+  if(zone.shrinking){
+    subEl.textContent = 'Zone zieht sich zusammen';
+    timerEl.textContent = Math.ceil(zone.shrinkDuration - zone.shrinkElapsed) + 's';
+  } else {
+    subEl.textContent = 'Nächste Verengung in';
+    timerEl.textContent = Math.ceil(zone.phaseTime) + 's';
+  }
+}
+
+function endGame(won){
+  if(gameOver) return;
+  gameOver = true;
+  gameStarted = false;
+  document.exitPointerLock && document.exitPointerLock();
+  const endScreen = document.getElementById('endScreen');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('endTitle').textContent = won ? '#1 — SIEG!' : 'ELIMINIERT';
+  document.getElementById('endTitle').style.background = won
+    ? 'linear-gradient(90deg,#ffcf5c,#5be7c4)'
+    : 'linear-gradient(90deg,#ff5d73,#ffcf5c)';
+  document.getElementById('endTitle').style.webkitBackgroundClip = 'text';
+  document.getElementById('endTitle').style.backgroundClip = 'text';
+  document.getElementById('endText').textContent = won
+    ? 'Du hast alle Gegner überlebt und die Zone gehalten. Skyshard-Sieger!'
+    : botsAliveCount+' Gegner waren noch übrig, als du eliminiert wurdest. Versuch es nochmal!';
+  endScreen.classList.remove('hidden');
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, clock.getDelta());
+  fireCooldown -= dt;
+
+  if(gameStarted && !gameOver){
+    updatePlayer(dt);
+    updateBots(dt);
+    updateBullets(dt);
+    updateZone(dt);
+  }
+  renderer.render(scene, camera);
+}
+animate();
+
+})();
+</script>
 </body>
 </html>
