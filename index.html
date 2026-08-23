@@ -52,19 +52,21 @@
   .botMeta span{font-size:10.5px; color:var(--muted);}
   .botElo{font-size:11px; color:var(--accent); font-weight:700;}
   #legend{font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:10px;}
-  #main{flex:1; position:relative; display:flex; flex-direction:column;}
+  #main{flex:1; position:relative; display:flex; flex-direction:column; min-width:0;}
   #topbar{ display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:#00000033; z-index:4; flex-wrap:wrap; gap:8px;}
   #turnInfo{font-size:15px; font-weight:600;}
   #turnInfo .dot{display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px; vertical-align:middle; box-shadow:0 0 10px 2px currentColor;}
   #leaderboard{display:flex; gap:6px; flex-wrap:wrap; max-width:60%; justify-content:flex-end;}
   .lb-chip{ display:flex; align-items:center; gap:5px; background:#ffffff14; padding:3px 8px; border-radius:20px; font-size:11px;}
   .lb-chip .swatch{width:9px; height:9px; border-radius:50%;}
-  #canvasWrap{flex:1; display:flex; align-items:center; justify-content:center; position:relative;}
-  canvas{background:#12102a; border-radius:16px; box-shadow:0 20px 60px #00000066, inset 0 0 0 1px #ffffff1a;}
-  #msg{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:#000000aa; padding:8px 18px; border-radius:20px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .3s ease;}
+  #canvasWrap{flex:1; display:flex; align-items:center; justify-content:center; position:relative; overflow:auto; padding:20px;}
+  canvas{background:#12102a; border-radius:16px; box-shadow:0 20px 60px #00000066, inset 0 0 0 1px #ffffff1a; flex-shrink:0;}
+  #msg{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:#000000aa; padding:8px 18px; border-radius:20px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .3s ease; z-index:6;}
   #msg.show{opacity:1;}
-  #goalLabel{position:absolute; font-size:12px; font-weight:700; color:var(--accent); pointer-events:none; text-shadow:0 0 8px #000; letter-spacing:.03em;}
-  .overlay{ position:absolute; inset:0; background:#000000cc; display:none; align-items:center; justify-content:center; flex-direction:column; z-index:20; backdrop-filter:blur(4px); padding:20px;}
+  #goalLabel{position:absolute; font-size:12px; font-weight:700; color:var(--accent); pointer-events:none; text-shadow:0 0 8px #000; letter-spacing:.03em; z-index:6;}
+  #h2hBar{ padding:8px 20px; background:#00000040; font-size:13.5px; text-align:center; font-weight:600; border-top:1px solid #ffffff14; display:none;}
+  #h2hBar b{color:var(--accent);}
+  .overlay{ position:absolute; inset:0; background:#000000cc; display:none; align-items:center; justify-content:center; flex-direction:column; z-index:20; backdrop-filter:blur(4px); padding:20px; overflow-y:auto;}
   .overlay.show{display:flex;}
   .overlay h2{font-size:32px; margin:0 0 10px 0; color:var(--accent); text-align:center;}
   .overlay p{color:var(--muted); margin-bottom:16px; text-align:center;}
@@ -76,7 +78,10 @@
   #profileOverlay table{width:100%; max-width:700px; border-collapse:collapse; font-size:13px; margin-bottom:16px;}
   #profileOverlay th, #profileOverlay td{padding:7px 10px; text-align:left; border-bottom:1px solid #ffffff1a;}
   #profileOverlay th{color:var(--accent2); font-size:11px; text-transform:uppercase; cursor:pointer;}
-  #profileTableWrap{max-height:60vh; overflow-y:auto; width:100%; max-width:700px;}
+  #profileTableWrap{max-height:45vh; overflow-y:auto; width:100%; max-width:700px;}
+  #historyWrap{width:100%; max-width:700px; margin-top:6px;}
+  #historyWrap h3{font-size:12.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:8px;}
+  #historyList{font-size:12px; color:var(--muted); max-height:160px; overflow-y:auto;}
   @media (max-width:820px){
     body{flex-direction:column;}
     #sidebar{width:100%; max-width:none; height:44vh; order:2; border-right:none; border-top:1px solid #ffffff22;}
@@ -116,6 +121,9 @@
     <h3>Spielfeld</h3>
     <div class="row"><label for="boardSize">Feldgröße</label><input type="range" id="boardSize" min="9" max="27" step="2" value="13"><output id="boardSizeOut">13×13</output></div>
     <div class="row"><label for="wallCount">Mauern pro Spieler</label><input type="range" id="wallCount" min="0" max="15" value="6"><output id="wallCountOut">6</output></div>
+    <div class="row"><label for="unlimitedWalls">Unendliche Mauern</label>
+      <input type="checkbox" id="unlimitedWalls" style="flex:0; width:18px; height:18px;">
+    </div>
     <div class="row"><label for="botDelay">Spielgeschwindigkeit</label><input type="range" id="botDelay" min="50" max="800" value="220"><output id="botDelayOut">220ms</output></div>
   </div>
 
@@ -129,18 +137,26 @@
         <option value="mono">Monochrom</option>
       </select>
     </div>
+    <div class="row"><label for="soundToggle">🔊 Sound-Effekte</label>
+      <input type="checkbox" id="soundToggle" checked style="flex:0; width:18px; height:18px;">
+    </div>
+    <div class="row"><label for="pathToggle">🧭 Meinen Pfad anzeigen</label>
+      <input type="checkbox" id="pathToggle" style="flex:0; width:18px; height:18px;">
+    </div>
   </div>
 
   <button id="startBtn" class="btnPrimary" style="width:100%;">🎮 Match starten</button>
   <button id="wallModeBtn" class="btnGhost" style="width:100%; margin-top:8px;">🧱 Mauer-Modus: AUS</button>
+  <button id="pauseBtn" class="btnGhost" style="width:100%; margin-top:8px;">⏸ Pause (Bots)</button>
   <button id="profileBtn" class="btnGhost" style="width:100%; margin-top:8px;">📊 Profile &amp; Elo</button>
 
   <div id="legend">
     <b>Steuerung:</b><br>
     • Grün markiertes Feld anklicken → dorthin ziehen.<br>
     • Mauer-Modus an → Klick auf eine Feldkante platziert eine Mauer.<br>
-    • Du bist der golden umrandete Kreis. Dein Ziel ist die golden gestrichelte Kante — mit "DEIN ZIEL" beschriftet.<br>
-    • Jeder Zug passiert sofort, nacheinander — kein gleichzeitiges Bewegen.
+    • Du bist der golden umrandete Kreis. Dein Ziel ist immer <b>die Mitte des Feldes</b> — mit "ZIEL: MITTE" markiert.<br>
+    • Jeder Zug passiert sofort, nacheinander — kein gleichzeitiges Bewegen.<br>
+    • Pfeiltasten bewegen dich, <b>W</b> schaltet den Mauer-Modus um, <b>Esc</b> schließt Fenster.
   </div>
 </div>
 
@@ -176,12 +192,17 @@
           <tbody id="profileBody"></tbody>
         </table>
       </div>
+      <div id="historyWrap">
+        <h3>Letzte Matches</h3>
+        <div id="historyList"></div>
+      </div>
       <div class="miniRow" style="max-width:400px;">
         <button id="resetProfilesBtn" class="btnGhost" style="border-color:#ef476f66; color:#ef476f;">Alle Statistiken zurücksetzen</button>
         <button id="closeProfileBtn" class="btnPrimary">Schließen</button>
       </div>
     </div>
   </div>
+  <div id="h2hBar"></div>
 </div>
 
 <script>
@@ -197,8 +218,6 @@ const THEMES = {
 };
 
 /* ============================ Bot-Roster (feste Persönlichkeiten) ============================ */
-// aggressiveness: wie oft versucht der Bot, Mauern gezielt gegen den Führenden zu setzen
-// skill: Wahrscheinlichkeit, den kürzesten BFS-Weg zu ziehen statt eines zufälligen legalen Zugs
 const BOT_ROSTER = [
   {id:'b_falke',    name:'Falke',        emoji:'🦅', style:'Rusher, kaum Mauern',     aggr:0.06, skill:0.95},
   {id:'b_dachs',    name:'Der Dachs',    emoji:'🦡', style:'Defensiv, viele Mauern',  aggr:0.75, skill:0.65},
@@ -239,7 +258,7 @@ function freshProfile(name){
 }
 let PROFILES = loadProfiles();
 
-function computeEloUpdates(participants /* [{key, rank}] sorted meaning rank 1..n */){
+function computeEloUpdates(participants){
   const n = participants.length;
   if(n<2) return {};
   const K = 24;
@@ -259,7 +278,6 @@ function computeEloUpdates(participants /* [{key, rank}] sorted meaning rank 1..
 }
 
 function applyMatchResults(finishedList){
-  // finishedList: array of {key,name,rank} rank 1 = winner ... n = last
   const deltas = computeEloUpdates(finishedList);
   finishedList.forEach(p=>{
     const prof = PROFILES[p.key] || (PROFILES[p.key]=freshProfile(p.name));
@@ -272,6 +290,77 @@ function applyMatchResults(finishedList){
   });
   saveProfiles(PROFILES);
   return deltas;
+}
+
+/* ============================ Head-to-Head 1v1 Scores (persisted) ============================ */
+const H2H_KEY = 'quoridorH2H_v1';
+function loadH2H(){ try{ return JSON.parse(localStorage.getItem(H2H_KEY))||{}; }catch(e){ return {}; } }
+function saveH2H(d){ try{ localStorage.setItem(H2H_KEY, JSON.stringify(d)); }catch(e){} }
+let H2H = loadH2H();
+function h2hKey(a,b){ return [a,b].sort().join('__'); }
+function stripEmoji(s){ return s.replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF]\uFE0F?/gu,'').trim(); }
+function updateH2HAfterGame(forElo){
+  if(forElo.length!==2) return;
+  const [a,b] = forElo;
+  const key = h2hKey(a.key,b.key);
+  const rec = H2H[key] || {names:{}, wins:{}};
+  rec.names[a.key]=a.name; rec.names[b.key]=b.name;
+  rec.wins[a.key]=rec.wins[a.key]||0; rec.wins[b.key]=rec.wins[b.key]||0;
+  const winner = forElo.find(p=>p.rank===1);
+  if(winner) rec.wins[winner.key]++;
+  H2H[key]=rec;
+  saveH2H(H2H);
+  renderH2HBar(a.key,b.key);
+}
+function renderH2HBar(keyA,keyB){
+  const bar = document.getElementById('h2hBar');
+  if(!state || state.players.length!==2){ bar.style.display='none'; return; }
+  const key = h2hKey(keyA,keyB);
+  const rec = H2H[key];
+  bar.style.display='block';
+  if(!rec){ bar.innerHTML='🥇 Head-to-Head: noch kein gespeicherter Score für dieses Duell.'; return; }
+  const ids = Object.keys(rec.wins);
+  bar.innerHTML = '🥇 Head-to-Head &nbsp; ' + ids.map(id=>'<b>'+rec.names[id]+'</b>: '+rec.wins[id]).join(' &nbsp;–&nbsp; ');
+}
+
+/* ============================ Match history (persisted) ============================ */
+const HISTORY_KEY = 'quoridorHistory_v1';
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY))||[]; }catch(e){ return []; } }
+function saveHistory(h){ try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }catch(e){} }
+let HISTORY = loadHistory();
+function addHistoryEntry(ranked, size){
+  const entry = { date:new Date().toLocaleString('de-DE'), size, players: ranked.map(p=>({name:p.name,rank:p.rank})) };
+  HISTORY.unshift(entry);
+  HISTORY = HISTORY.slice(0,20);
+  saveHistory(HISTORY);
+}
+function renderHistory(){
+  const el = document.getElementById('historyList');
+  if(!HISTORY.length){ el.textContent='Noch keine Matches gespeichert.'; return; }
+  el.innerHTML = HISTORY.map(h=>{
+    const order = h.players.map(p=> (p.rank===1?'🥇':p.rank===2?'🥈':p.rank===3?'🥉':p.rank+'.') +' '+p.name).join(' · ');
+    return '<div style="padding:5px 0; border-bottom:1px solid #ffffff14;"><span style="color:var(--muted);">'+h.date+' ('+h.size+'×'+h.size+')</span><br>'+order+'</div>';
+  }).join('');
+}
+
+/* ============================ Sound effects ============================ */
+let audioCtx=null;
+function ensureAudio(){
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  return audioCtx;
+}
+function playBeep(freq,dur){
+  const cb = document.getElementById('soundToggle');
+  if(!cb || !cb.checked) return;
+  const ctx2 = ensureAudio(); if(!ctx2) return;
+  try{
+    const osc = ctx2.createOscillator(); const gain = ctx2.createGain();
+    osc.frequency.value=freq; osc.type='sine';
+    gain.gain.setValueAtTime(0.08, ctx2.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx2.currentTime+dur);
+    osc.connect(gain); gain.connect(ctx2.destination);
+    osc.start(); osc.stop(ctx2.currentTime+dur);
+  }catch(e){}
 }
 
 /* ============================ UI: Bot list ============================ */
@@ -321,6 +410,10 @@ function bindRange(id, outId, fmt){
 bindRange('boardSize','boardSizeOut', v => v+'×'+v);
 bindRange('wallCount','wallCountOut');
 bindRange('botDelay','botDelayOut', v => v+'ms');
+document.getElementById('unlimitedWalls').addEventListener('change', function(){
+  document.getElementById('wallCount').disabled = this.checked;
+});
+document.getElementById('pathToggle').addEventListener('change', ()=>{ if(state) render(); });
 
 /* ============================ Game state ============================ */
 let cfg = {};
@@ -349,6 +442,15 @@ document.getElementById('wallModeBtn').addEventListener('click', ()=>{
   btn.textContent = '🧱 Mauer-Modus: ' + (state.wallMode ? 'AN' : 'AUS');
   render();
 });
+document.getElementById('pauseBtn').addEventListener('click', ()=>{
+  if(!state || state.over) return;
+  state.paused = !state.paused;
+  const btn = document.getElementById('pauseBtn');
+  btn.textContent = state.paused ? '▶ Weiter' : '⏸ Pause (Bots)';
+  btn.classList.toggle('active', state.paused);
+  if(state.paused){ clearTimeout(state.timer); }
+  else { scheduleNextTurn(); }
+});
 
 function openProfileOverlay(){
   const rows = Object.keys(PROFILES).map(key=>({key, ...PROFILES[key]}))
@@ -363,6 +465,7 @@ function openProfileOverlay(){
       <td>${p.games}</td><td>${p.wins}</td><td>${winrate}</td><td>${avgRank}</td><td>${p.top3}</td>
     </tr>`;
   }).join('');
+  renderHistory();
   document.getElementById('profileOverlay').classList.add('show');
 }
 
@@ -385,6 +488,7 @@ function startGame(){
 
   cfg = {
     size, wallsPerPlayer: walls,
+    unlimitedWalls: document.getElementById('unlimitedWalls').checked,
     botDelay: +document.getElementById('botDelay').value,
     theme: THEMES[themeKey]
   };
@@ -392,17 +496,22 @@ function startGame(){
   if(state && state.timer) clearTimeout(state.timer);
   state = buildState(cfg, participants);
   document.getElementById('winOverlay').classList.remove('show');
-  showMsg(humanPlays ? 'Los geht\'s! Du bist der golden umrandete Spieler.' : 'Zuschauer-Modus: Bots spielen gegeneinander.');
+  showMsg(humanPlays ? 'Los geht\'s! Erreiche als Erster die Mitte des Feldes.' : 'Zuschauer-Modus: Bots spielen gegeneinander.');
+  const pauseBtn = document.getElementById('pauseBtn');
+  pauseBtn.textContent = '⏸ Pause (Bots)'; pauseBtn.classList.remove('active');
   resizeCanvas();
   render();
   updateLeaderboard();
   updateTurnInfo();
+  if(state.players.length===2) renderH2HBar(state.players[0].key, state.players[1].key);
+  else document.getElementById('h2hBar').style.display='none';
   startAnimLoop();
   scheduleNextTurn();
 }
 
 function buildState(cfg, participants){
   const size = cfg.size;
+  const center = Math.floor(size/2);
   const n = participants.length;
   const players = participants.map((part,i)=>{
     const edge = i % 4;
@@ -411,14 +520,14 @@ function buildState(cfg, participants){
     const t = (groupIndex + 1) / (perEdge + 1);
     const last = size-1;
     const pos = Math.max(0, Math.min(last, Math.round(t*last)));
-    let r,c, goalRow=-1, goalCol=-1;
-    if(edge===0){ r=0; c=pos; goalRow=last; }
-    else if(edge===1){ r=pos; c=last; goalCol=0; }
-    else if(edge===2){ r=last; c=pos; goalRow=0; }
-    else { r=pos; c=0; goalCol=last; }
+    let r,c;
+    if(edge===0){ r=0; c=pos; }
+    else if(edge===1){ r=pos; c=last; }
+    else if(edge===2){ r=last; c=pos; }
+    else { r=pos; c=0; }
     return {
       key:part.key, id:i, human:part.human, bot:part.bot,
-      r,c, goalRow, goalCol, startEdge:edge,
+      r,c, goalRow:center, goalCol:center, startEdge:edge,
       wallsLeft: cfg.wallsPerPlayer,
       color: cfg.theme.palette[i % cfg.theme.palette.length],
       alive:true, finished:false, rank:null,
@@ -430,7 +539,7 @@ function buildState(cfg, participants){
   players.forEach(p=>{
     let key=p.r+','+p.c, tries=0;
     while(occ.has(key) && tries<size){
-      if(p.goalCol===-1){ p.c=(p.c+1)%size; } else { p.r=(p.r+1)%size; }
+      if(p.startEdge===0 || p.startEdge===2){ p.c=(p.c+1)%size; } else { p.r=(p.r+1)%size; }
       key=p.r+','+p.c; tries++;
     }
     occ.add(key);
@@ -440,7 +549,7 @@ function buildState(cfg, participants){
     size, players,
     hWalls:new Set(), vWalls:new Set(),
     turnOrder: players.map(p=>p.id),
-    turnIdx:0, wallMode:false, over:false,
+    turnIdx:0, wallMode:false, over:false, paused:false,
     finishOrder:[], timer:null
   };
 }
@@ -487,7 +596,7 @@ function bfsToGoal(p, fromR, fromC){
   let goalCell=null, head=0;
   while(head<q.length){
     const [r,c]=q[head++];
-    if((p.goalRow!==-1 && r===p.goalRow) || (p.goalCol!==-1 && c===p.goalCol)){ goalCell=[r,c]; break; }
+    if(r===p.goalRow && c===p.goalCol){ goalCell=[r,c]; break; }
     for(const [nr,nc] of neighbors(r,c)){
       const idx=nr*size+nc;
       if(!visited[idx]){ visited[idx]=true; prev[idx]=r*size+c; q.push([nr,nc]); }
@@ -508,7 +617,8 @@ function allPlayersHavePath(){
 }
 function tryPlaceWall(type,r,c,playerId){
   const p = state.players.find(x=>x.id===playerId);
-  if(!p || p.wallsLeft<=0) return false;
+  if(!p) return false;
+  if(!cfg.unlimitedWalls && p.wallsLeft<=0) return false;
   if(type==='h'){
     if(r<0||r>=state.size-1||c<0||c>=state.size) return false;
     const key=r+','+c; if(state.hWalls.has(key)) return false;
@@ -522,7 +632,9 @@ function tryPlaceWall(type,r,c,playerId){
     if(type==='h') state.hWalls.delete(r+','+c); else state.vWalls.delete(r+','+c);
     return false;
   }
-  p.wallsLeft--; return true;
+  if(!cfg.unlimitedWalls) p.wallsLeft--;
+  playBeep(300,0.08);
+  return true;
 }
 
 /* ============================ Turn engine — sequential ============================ */
@@ -541,24 +653,25 @@ function advanceTurn(){
 
 function scheduleNextTurn(){
   clearTimeout(state.timer);
+  if(state.paused) return;
   const p = currentPlayer();
-  if(p.human){ render(); return; } // wait for click
-  const thisGame = state; // guard against a stale callback firing after a new game has started
-  state.timer = setTimeout(()=>{ if(state===thisGame) botTurn(p); }, cfg.botDelay);
+  if(p.human){ render(); return; }
+  const thisGame = state;
+  state.timer = setTimeout(()=>{ if(state===thisGame && !state.paused) botTurn(p); }, cfg.botDelay);
 }
 
 function movePlayer(p,r,c){
   p.r=r; p.c=c;
-  if((p.goalRow!==-1 && r===p.goalRow) || (p.goalCol!==-1 && c===p.goalCol)){
+  playBeep(p.human?440:380, 0.05);
+  if(r===p.goalRow && c===p.goalCol){
     p.finished=true;
     state.finishOrder.push(p.id);
     p.rank = state.finishOrder.length;
+    playBeep(880,0.3);
     showMsg((p.human?'Du hast':p.name+' hat')+' Platz '+p.rank+' erreicht! 🎉');
   }
 }
 
-// Each bot acts ONE step at a time; render+leaderboard update happens immediately after,
-// then the *next* player's turn is scheduled — never simultaneous.
 function botTurn(p){
   if(state.over) return;
   const persona = p.bot || {aggr:0.4, skill:0.8};
@@ -566,7 +679,8 @@ function botTurn(p){
   const moves = legalMoves(p);
 
   let placedWall=false;
-  if(p.wallsLeft>0 && Math.random() < persona.aggr){
+  const hasWalls = cfg.unlimitedWalls || p.wallsLeft>0;
+  if(hasWalls && Math.random() < persona.aggr){
     const rival = findLeadingRival(p);
     if(rival) placedWall = attemptBlockingWall(p, rival);
   }
@@ -583,7 +697,7 @@ function botTurn(p){
     }
   }
   updateLeaderboard();
-  advanceTurn(); // renders immediately; next actor scheduled only after this one fully resolved
+  advanceTurn();
 }
 
 function findLeadingRival(self){
@@ -603,7 +717,6 @@ function attemptBlockingWall(self, rival){
   const r=Math.min(r1,r2); return tryPlaceWall('h', r, c1, self.id);
 }
 
-/* Game ends once all-but-one participants have finished — gives a full ranking for Elo. */
 function checkGameEnd(){
   if(state.over) return true;
   const unfinished = state.players.filter(p=>!p.finished && p.alive);
@@ -624,8 +737,12 @@ function endGame(){
   state.over=true;
   clearTimeout(state.timer);
   const ranked = state.players.filter(p=>p.rank!=null).sort((a,b)=>a.rank-b.rank);
-  const forElo = ranked.map(p=>({key:p.key, name:p.name.replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF]\uFE0F?/gu,'').trim(), rank:p.rank}));
+  const forElo = ranked.map(p=>({key:p.key, name:stripEmoji(p.name), rank:p.rank}));
   const deltas = applyMatchResults(forElo);
+  addHistoryEntry(ranked.map(p=>({name:p.name, rank:p.rank})), state.size);
+  updateH2HAfterGame(forElo);
+  playBeep(660,0.15);
+  setTimeout(()=>playBeep(990,0.35),150);
 
   const human = state.players.find(p=>p.human);
   const title = document.getElementById('winTitle');
@@ -655,66 +772,43 @@ function endGame(){
 /* ============================ Rendering ============================ */
 function resizeCanvas(){
   const wrap = document.getElementById('canvasWrap');
-  let s = Math.min(wrap.clientWidth-40, wrap.clientHeight-40, 900);
-  if(!s || s<=0 || isNaN(s)) s = 600; // fallback if layout not settled yet
+  const availW = wrap.clientWidth-40, availH = wrap.clientHeight-40;
+  const fitSize = Math.min(availW, availH, 900);
+  const minCell = 26;
+  const size = state ? state.size : 13;
+  const neededForMinCell = size*minCell;
+  let s = Math.max(fitSize, neededForMinCell);
+  if(!s || s<=0 || isNaN(s)) s = Math.max(600, neededForMinCell);
   canvas.width=s; canvas.height=s;
 }
 window.addEventListener('resize', ()=>{ if(state){ resizeCanvas(); render(); }});
 function cellSize(){ return canvas.width/state.size; }
 
-function drawGoalZones(){
+function drawGoalZone(){
   const cs = cellSize();
-  const size = state.size;
-  const groups = {}; // edge -> colors[]
-  state.players.forEach(p=>{
-    const edge = p.goalRow===0 ? 'top' : p.goalRow===size-1 ? 'bottom' : p.goalCol===0 ? 'left' : 'right';
-    (groups[edge]=groups[edge]||[]).push(p.color);
-  });
-  Object.keys(groups).forEach(edge=>{
-    const colors = groups[edge];
-    ctx.save();
-    ctx.globalAlpha = 0.14;
-    colors.forEach((col,i)=>{
-      ctx.fillStyle = col;
-      const t = 5;
-      if(edge==='top') ctx.fillRect(0,0,canvas.width,t);
-      if(edge==='bottom') ctx.fillRect(0,canvas.height-t,canvas.width,t);
-      if(edge==='left') ctx.fillRect(0,0,t,canvas.height);
-      if(edge==='right') ctx.fillRect(canvas.width-t,0,t,canvas.height);
-    });
-    ctx.restore();
-  });
+  const center = Math.floor(state.size/2);
+  const cx = center*cs+cs/2, cy = center*cs+cs/2;
+  const pulse = 0.5 + 0.5*Math.sin(Date.now()/260);
 
-  // strong pulsing marker for human's goal
-  const human = state.players.find(p=>p.human);
-  if(human){
-    const edge = human.goalRow===0?'top':human.goalRow===size-1?'bottom':human.goalCol===0?'left':'right';
-    const pulse = 0.55 + 0.45*Math.sin(Date.now()/260);
-    ctx.save();
-    ctx.strokeStyle = '#ffd166';
-    ctx.lineWidth = 6;
-    ctx.setLineDash([14,10]);
-    ctx.lineDashOffset = -Date.now()/40;
-    ctx.globalAlpha = pulse;
-    ctx.beginPath();
-    if(edge==='top'){ ctx.moveTo(3,3); ctx.lineTo(canvas.width-3,3); }
-    if(edge==='bottom'){ ctx.moveTo(3,canvas.height-3); ctx.lineTo(canvas.width-3,canvas.height-3); }
-    if(edge==='left'){ ctx.moveTo(3,3); ctx.lineTo(3,canvas.height-3); }
-    if(edge==='right'){ ctx.moveTo(canvas.width-3,3); ctx.lineTo(canvas.width-3,canvas.height-3); }
-    ctx.stroke();
-    ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = 0.16 + pulse*0.12;
+  ctx.fillStyle = '#ffd166';
+  ctx.beginPath(); ctx.arc(cx,cy, cs*0.62, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
 
-    const label = document.getElementById('goalLabel');
-    const wrap = document.getElementById('canvasWrap').getBoundingClientRect();
-    const cnv = canvas.getBoundingClientRect();
-    label.textContent = '🏁 DEIN ZIEL';
-    let lx,ly;
-    if(edge==='top'){ lx = cnv.left-wrap.left + cnv.width/2 - 40; ly = cnv.top-wrap.top - 22; }
-    else if(edge==='bottom'){ lx = cnv.left-wrap.left + cnv.width/2 - 40; ly = cnv.top-wrap.top + cnv.height + 6; }
-    else if(edge==='left'){ lx = cnv.left-wrap.left - 90; ly = cnv.top-wrap.top + cnv.height/2 - 8; }
-    else { lx = cnv.left-wrap.left + cnv.width + 6; ly = cnv.top-wrap.top + cnv.height/2 - 8; }
-    label.style.left = lx+'px'; label.style.top = ly+'px';
-  }
+  ctx.save();
+  ctx.strokeStyle='#ffd166'; ctx.lineWidth=3; ctx.setLineDash([8,6]);
+  ctx.lineDashOffset = -Date.now()/40;
+  ctx.globalAlpha = pulse;
+  ctx.beginPath(); ctx.arc(cx,cy, cs*0.42, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+  const label = document.getElementById('goalLabel');
+  const wrap = document.getElementById('canvasWrap').getBoundingClientRect();
+  const cnv = canvas.getBoundingClientRect();
+  label.textContent = '🎯 ZIEL: MITTE';
+  label.style.left = (cnv.left-wrap.left+wrap.scrollLeft+cx-45)+'px';
+  label.style.top = (cnv.top-wrap.top+wrap.scrollTop+cy-cs*0.62-24)+'px';
 }
 
 function render(){
@@ -724,7 +818,7 @@ function render(){
   ctx.fillStyle = theme.bg;
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  drawGoalZones();
+  drawGoalZone();
 
   ctx.strokeStyle = theme.grid; ctx.lineWidth=1;
   for(let i=0;i<=state.size;i++){
@@ -739,6 +833,25 @@ function render(){
     legalMoves(human).forEach(([r,c])=>{
       ctx.beginPath(); ctx.roundRect(c*cs+4, r*cs+4, cs-8, cs-8, 6); ctx.fill();
     });
+  }
+
+  const pathToggleOn = document.getElementById('pathToggle').checked;
+  if(pathToggleOn && human && !human.finished){
+    const {path} = bfsToGoal(human, human.r, human.c);
+    if(path.length>1){
+      ctx.save();
+      ctx.strokeStyle = theme.highlight;
+      ctx.globalAlpha = 0.7;
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6,6]);
+      ctx.beginPath();
+      path.forEach(([r,c],i)=>{
+        const x=c*cs+cs/2, y=r*cs+cs/2;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   ctx.fillStyle = theme.wall;
@@ -772,8 +885,6 @@ function render(){
   });
 }
 
-/* Single persistent animation loop (for the pulsing goal border) — started once per
-   game, never re-spawned, so it can't stack up and freeze the tab. */
 let animFrameId = null;
 function startAnimLoop(){
   if(animFrameId!==null) cancelAnimationFrame(animFrameId);
@@ -804,7 +915,7 @@ canvas.addEventListener('click',(ev)=>{
     else if(fracY<0.28) placed=tryPlaceWall('h',r-1,c,p.id);
     else if(fracX<0.28) placed=tryPlaceWall('v',r,c-1,p.id);
     if(placed){
-      showMsg('Mauer platziert. Verbleibend: '+p.wallsLeft);
+      showMsg('Mauer platziert. Verbleibend: '+(cfg.unlimitedWalls?'∞':p.wallsLeft));
       updateLeaderboard();
       advanceTurn();
     } else {
@@ -822,12 +933,41 @@ canvas.addEventListener('click',(ev)=>{
   }
 });
 
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'){
+    document.getElementById('winOverlay').classList.remove('show');
+    document.getElementById('profileOverlay').classList.remove('show');
+    return;
+  }
+  if(!state || state.over) return;
+  const p = currentPlayer();
+  if(e.key==='w' || e.key==='W'){
+    if(p.human) document.getElementById('wallModeBtn').click();
+    return;
+  }
+  if(!p.human || state.wallMode) return;
+  const arrowMap = {ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+  const dir = arrowMap[e.key];
+  if(!dir) return;
+  e.preventDefault();
+  const [dr,dc] = dir;
+  const moves = legalMoves(p);
+  let target = moves.find(m=> (dr!==0 ? (m[0]-p.r===dr && m[1]===p.c) : (m[1]-p.c===dc && m[0]===p.r)));
+  if(!target) target = moves.find(m=> (dr!==0 && Math.sign(m[0]-p.r)===dr) || (dc!==0 && Math.sign(m[1]-p.c)===dc));
+  if(target){
+    movePlayer(p,target[0],target[1]);
+    updateLeaderboard();
+    advanceTurn();
+  }
+});
+
 /* ============================ HUD ============================ */
 function updateTurnInfo(){
   const el = document.getElementById('turnInfo');
   if(!state || state.over){ el.textContent='Spiel beendet'; return; }
   const p = currentPlayer();
-  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + (p.human?'Du bist am Zug':p.name+' ist am Zug') + ' · Mauern: '+p.wallsLeft;
+  const wallsTxt = cfg.unlimitedWalls ? '∞' : p.wallsLeft;
+  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + (p.human?'Du bist am Zug':p.name+' ist am Zug') + ' · Mauern: '+wallsTxt;
 }
 function updateLeaderboard(){
   const lb = document.getElementById('leaderboard');
@@ -852,13 +992,10 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
   };
 }
 
-/* Initial state: pre-select a handful of varied bots and start immediately,
-   exactly like the very first version — no click required to see gameplay. */
 window.addEventListener('load', ()=>{
   renderBotList();
   randomSelect(6);
   resizeCanvas();
-  // small delay so the layout has settled and canvasWrap has its real size
   setTimeout(()=>{ resizeCanvas(); startGame(); }, 50);
 });
 
