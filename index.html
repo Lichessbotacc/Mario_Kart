@@ -100,8 +100,14 @@
 
   <div class="group">
     <h3>Modus</h3>
-    <div class="row"><label for="humanPlays">Spieler 1 spielt mit</label>
+    <div class="row"><label for="humanPlays">Ich spiele mit</label>
       <input type="checkbox" id="humanPlays" checked style="flex:0; width:18px; height:18px;">
+    </div>
+    <div class="row"><label for="soloProfileSelect">Ich spiele als</label>
+      <select id="soloProfileSelect">
+        <option value="human">Spieler 1</option>
+        <option value="human2">Spieler 2</option>
+      </select>
     </div>
     <div class="row"><label for="player2Enabled">👥 Lokaler 2. Spieler (WASD)</label>
       <input type="checkbox" id="player2Enabled" style="flex:0; width:18px; height:18px;">
@@ -112,6 +118,17 @@
       <input type="checkbox" id="autoMode" style="flex:0; width:18px; height:18px;">
     </div>
     <div class="row" style="font-size:11px; color:var(--muted);">An = 2 zufällige Bots spielen endlos nacheinander gegeneinander, immer 1vs1</div>
+  </div>
+
+  <div class="group">
+    <h3>Spieler-Profile <span style="color:var(--muted); font-weight:400; text-transform:none; font-size:11px;">(max. 2)</span></h3>
+    <div class="row"><label for="p1NameInput">Name Spieler 1</label>
+      <input type="text" id="p1NameInput" maxlength="16" style="flex:2; background:#ffffff14; color:var(--text); border:1px solid #ffffff2a; border-radius:6px; padding:5px 8px; font-size:13px;">
+    </div>
+    <div class="row"><label for="p2NameInput">Name Spieler 2</label>
+      <input type="text" id="p2NameInput" maxlength="16" style="flex:2; background:#ffffff14; color:var(--text); border:1px solid #ffffff2a; border-radius:6px; padding:5px 8px; font-size:13px;">
+    </div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Spielst du allein, wähle oben unter "Ich spiele als", welches der beiden Profile gerade Elo &amp; Statistik sammelt. Bei 2-Spieler-Modus spielen automatisch beide.</div>
   </div>
 
   <div class="group">
@@ -141,22 +158,27 @@
   </div>
 
   <div class="group">
-    <h3>Schnell-Modi</h3>
-    <div class="miniRow">
-      <button class="btnGhost" id="modeRandomDuel">🎯 Zufalls-Duell</button>
-      <button class="btnGhost" id="modeLocal2p">👥 2-Spieler lokal</button>
-      <button class="btnGhost" id="modeBattleRoyale">🐝 Battle Royale</button>
+    <h3>Neue Spielmodi</h3>
+    <div class="row"><label for="fogMode">🌫️ Nebel des Krieges</label>
+      <input type="checkbox" id="fogMode" style="flex:0; width:18px; height:18px;">
     </div>
-    <div class="miniRow">
-      <button class="btnGhost" id="modeFortress">🏰 Festungskrieg</button>
-      <button class="btnGhost" id="modeDecay">🕐 Verfall-Duell</button>
-      <button class="btnGhost" id="modeSpeedrun">🏃 Speedrun</button>
+    <div class="row"><label for="fogRadius">Sichtweite (Felder)</label><input type="range" id="fogRadius" min="1" max="8" value="3"><output id="fogRadiusOut">3</output></div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Du siehst nur Figuren &amp; Mauern in deiner Umgebung — der Rest liegt im Dunkeln.</div>
+
+    <div class="row"><label for="doubleStep">⏩ Doppelzug (2 Schritte)</label>
+      <input type="checkbox" id="doubleStep" style="flex:0; width:18px; height:18px;">
     </div>
-    <div class="miniRow">
-      <button class="btnGhost" id="modeInfiniteChaos">♾️ Mauer-Chaos</button>
-      <button class="btnGhost" id="modeTiny">🔬 Mini-Feld</button>
-      <button class="btnGhost" id="modeAuto247" title="24/7 Dauerlauf ein/aus">🔁 24/7 an/aus</button>
+    <div class="row" style="font-size:11px; color:var(--muted);">Jeder darf bis zu 2 Laufschritte pro Zug machen (eine Mauer setzen beendet den Zug sofort).</div>
+
+    <div class="row"><label for="teamMode">🤝 Team-Modus (Team A/B)</label>
+      <input type="checkbox" id="teamMode" style="flex:0; width:18px; height:18px;">
     </div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Teilnehmer wechseln sich in 2 Teams ab (gestrichelter Ring = Team-Farbe). Sobald irgendein Team-Mitglied das Ziel erreicht, gewinnt das ganze Team.</div>
+
+    <div class="row"><label for="wanderGoal">🔄 Wanderndes Ziel</label>
+      <input type="checkbox" id="wanderGoal" style="flex:0; width:18px; height:18px;">
+    </div>
+    <div class="row"><label for="wanderGoalRounds">Ziel wechselt alle X Runden</label><input type="range" id="wanderGoalRounds" min="2" max="20" value="6"><output id="wanderGoalRoundsOut">6</output></div>
   </div>
 
   <div class="group">
@@ -198,6 +220,7 @@
 <div id="main">
   <div id="topbar">
     <div id="turnInfo">Bereit</div>
+    <button id="endTurnBtn" class="btnGhost" style="display:none;">✅ Zug beenden</button>
     <div id="leaderboard"></div>
   </div>
   <div id="canvasWrap">
@@ -281,7 +304,7 @@ function loadProfiles(){
   let raw=null;
   try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){}
   let data = raw ? JSON.parse(raw) : {};
-  if(!data['human']) data['human'] = freshProfile('Du');
+  if(!data['human']) data['human'] = freshProfile('Spieler 1');
   if(!data['human2']) data['human2'] = freshProfile('Spieler 2');
   BOT_ROSTER.forEach(b=>{ if(!data[b.id]) data[b.id] = freshProfile(b.name); });
   return data;
@@ -454,6 +477,25 @@ document.getElementById('unlimitedWalls').addEventListener('change', function(){
 document.getElementById('wallExpireMode').addEventListener('change', function(){
   if(this.checked) document.getElementById('unlimitedWalls').checked=false;
 });
+bindRange('fogRadius','fogRadiusOut');
+bindRange('wanderGoalRounds','wanderGoalRoundsOut');
+document.getElementById('fogMode').addEventListener('change', ()=>{ if(state) render(); });
+
+function initProfileNameInputs(){
+  document.getElementById('p1NameInput').value = PROFILES['human'].name;
+  document.getElementById('p2NameInput').value = PROFILES['human2'].name;
+}
+document.getElementById('p1NameInput').addEventListener('input', function(){
+  const v = this.value.trim() || 'Spieler 1';
+  PROFILES['human'].name = v; saveProfiles(PROFILES);
+});
+document.getElementById('p2NameInput').addEventListener('input', function(){
+  const v = this.value.trim() || 'Spieler 2';
+  PROFILES['human2'].name = v; saveProfiles(PROFILES);
+});
+document.getElementById('player2Enabled').addEventListener('change', function(){
+  document.getElementById('soloProfileSelect').disabled = this.checked;
+});
 document.getElementById('pathToggle').addEventListener('change', ()=>{ if(state) render(); });
 
 /* ============================ Game state ============================ */
@@ -469,10 +511,10 @@ document.getElementById('profileBtn').addEventListener('click', openProfileOverl
 document.getElementById('closeProfileBtn').addEventListener('click', ()=> document.getElementById('profileOverlay').classList.remove('show'));
 document.getElementById('resetProfilesBtn').addEventListener('click', ()=>{
   if(confirm('Wirklich alle Elo-Werte und Statistiken zurücksetzen?')){
-    PROFILES = {}; PROFILES['human']=freshProfile('Du'); PROFILES['human2']=freshProfile('Spieler 2');
+    PROFILES = {}; PROFILES['human']=freshProfile('Spieler 1'); PROFILES['human2']=freshProfile('Spieler 2');
     BOT_ROSTER.forEach(b=>PROFILES[b.id]=freshProfile(b.name));
     saveProfiles(PROFILES);
-    renderBotList(); openProfileOverlay();
+    renderBotList(); openProfileOverlay(); initProfileNameInputs();
   }
 });
 document.getElementById('wallModeBtn').addEventListener('click', ()=>{
@@ -496,99 +538,6 @@ document.getElementById('autoMode').addEventListener('change', function(){
   document.getElementById('sel19').disabled = on;
   if(on) startAutoRandom1v1();
 });
-function setVal(id,v){ const el=document.getElementById(id); el.value=v; el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); }
-function setChecked(id,v){ const el=document.getElementById(id); el.checked=v; el.dispatchEvent(new Event('change')); }
-function turnOffAuto(){ setChecked('autoMode', false); }
-
-document.getElementById('modeRandomDuel').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', false);
-  setChecked('wallExpireMode', false);
-  selectedBots.clear();
-  const pool=[...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,1);
-  pool.forEach(b=>selectedBots.add(b.id));
-  renderBotList();
-  setVal('boardSize',13); setVal('wallCount',6); setVal('botDelay',220);
-  startGame();
-});
-document.getElementById('modeLocal2p').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', true);
-  selectedBots.clear(); renderBotList();
-  setVal('boardSize',13); setVal('wallCount',8); setVal('botDelay',220);
-  startGame();
-});
-document.getElementById('modeBattleRoyale').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', false);
-  setChecked('wallExpireMode', false);
-  randomSelect(12);
-  setVal('boardSize',21); setVal('wallCount',5); setVal('botDelay',140);
-  startGame();
-});
-document.getElementById('modeFortress').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', false);
-  setChecked('wallExpireMode', false);
-  randomSelect(3);
-  setVal('boardSize',17); setVal('wallCount',15); setVal('botDelay',260);
-  startGame();
-});
-document.getElementById('modeDecay').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', false);
-  setChecked('wallExpireMode', true);
-  setVal('wallExpireRounds', 8);
-  selectedBots.clear();
-  const pool=[...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,1);
-  pool.forEach(b=>selectedBots.add(b.id));
-  renderBotList();
-  setVal('boardSize',13); setVal('wallCount',10); setVal('botDelay',220);
-  startGame();
-});
-document.getElementById('modeSpeedrun').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', false);
-  setChecked('wallExpireMode', false);
-  randomSelect(2);
-  setVal('boardSize',9); setVal('wallCount',2); setVal('botDelay',90);
-  startGame();
-});
-document.getElementById('modeInfiniteChaos').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', true);
-  setChecked('wallExpireMode', false);
-  randomSelect(8);
-  setVal('boardSize',17); setVal('botDelay',180);
-  startGame();
-});
-document.getElementById('modeTiny').addEventListener('click', ()=>{
-  turnOffAuto();
-  setChecked('humanPlays', true);
-  setChecked('player2Enabled', false);
-  setChecked('unlimitedWalls', false);
-  setChecked('wallExpireMode', false);
-  randomSelect(3);
-  setVal('boardSize',9); setVal('wallCount',4); setVal('botDelay',180);
-  startGame();
-});
-document.getElementById('modeAuto247').addEventListener('click', ()=>{
-  document.getElementById('autoMode').click();
-});
-
 function startAutoRandom1v1(){
   document.getElementById('humanPlays').checked = false;
   selectedBots.clear();
@@ -630,8 +579,13 @@ function startGame(){
   const player2 = document.getElementById('player2Enabled').checked && humanPlays;
   const chosenBots = BOT_ROSTER.filter(b=>selectedBots.has(b.id));
   const participants = [];
-  if(humanPlays) participants.push({key:'human', name: player2 ? 'Spieler 1' : 'Du', human:true, humanIndex:0, bot:null});
-  if(player2) participants.push({key:'human2', name:'Spieler 2', human:true, humanIndex:1, bot:null});
+  if(humanPlays && player2){
+    participants.push({key:'human', name:PROFILES['human'].name, human:true, humanIndex:0, bot:null});
+    participants.push({key:'human2', name:PROFILES['human2'].name, human:true, humanIndex:1, bot:null});
+  } else if(humanPlays){
+    const soloKey = document.getElementById('soloProfileSelect').value;
+    participants.push({key:soloKey, name:PROFILES[soloKey].name, human:true, humanIndex:0, bot:null});
+  }
   chosenBots.forEach(b=> participants.push({key:b.id, name:b.name+' '+b.emoji, human:false, bot:b}));
 
   if(participants.length<2){
@@ -648,6 +602,12 @@ function startGame(){
     unlimitedWalls: document.getElementById('unlimitedWalls').checked,
     wallExpire: document.getElementById('wallExpireMode').checked,
     wallExpireRounds: +document.getElementById('wallExpireRounds').value,
+    fogMode: document.getElementById('fogMode').checked,
+    fogRadius: +document.getElementById('fogRadius').value,
+    doubleStep: document.getElementById('doubleStep').checked,
+    teamMode: document.getElementById('teamMode').checked,
+    wanderGoal: document.getElementById('wanderGoal').checked,
+    wanderGoalRounds: +document.getElementById('wanderGoalRounds').value,
     botDelay: +document.getElementById('botDelay').value,
     theme: THEMES[themeKey]
   };
@@ -689,6 +649,7 @@ function buildState(cfg, participants){
       r,c, goalRow:center, goalCol:center, startEdge:edge,
       wallsLeft: cfg.wallsPerPlayer,
       color: cfg.theme.palette[i % cfg.theme.palette.length],
+      team: cfg.teamMode ? (i%2) : null,
       alive:true, finished:false, rank:null,
       name: part.name
     };
@@ -707,8 +668,9 @@ function buildState(cfg, participants){
   return {
     size, players,
     hWalls:new Set(), vWalls:new Set(), wallLog:[], round:0,
+    goalR:center, goalC:center, lastGoalMoveRound:0,
     turnOrder: players.map(p=>p.id),
-    turnIdx:0, wallMode:false, over:false, paused:false,
+    turnIdx:0, wallMode:false, over:false, paused:false, stepsTaken:0,
     finishOrder:[], timer:null
   };
 }
@@ -820,6 +782,7 @@ function currentPlayer(){ return state.players[state.turnOrder[state.turnIdx % s
 
 function advanceTurn(){
   if(state.over) return;
+  state.stepsTaken = 0;
   const prevPos = state.turnIdx % state.turnOrder.length;
   let tries=0;
   do{ state.turnIdx++; tries++; }
@@ -828,11 +791,27 @@ function advanceTurn(){
   if(newPos <= prevPos){
     state.round++;
     if(cfg.wallExpire) expireOldWalls();
+    if(cfg.wanderGoal && state.round - state.lastGoalMoveRound >= cfg.wanderGoalRounds) relocateGoal();
   }
   updateTurnInfo();
   render();
   if(checkGameEnd()) return;
   scheduleNextTurn();
+}
+
+function relocateGoal(){
+  const size = state.size;
+  let tries=0, r,c;
+  do{
+    r = 2 + Math.floor(Math.random()*(size-4));
+    c = 2 + Math.floor(Math.random()*(size-4));
+    tries++;
+  } while((r===state.goalR && c===state.goalC) && tries<20);
+  state.goalR = r; state.goalC = c;
+  state.lastGoalMoveRound = state.round;
+  state.players.forEach(p=>{ if(!p.finished){ p.goalRow=r; p.goalCol=c; } });
+  showMsg('🔄 Das Ziel hat sich verschoben!');
+  playBeep(520,0.12); setTimeout(()=>playBeep(700,0.12),120);
 }
 
 function scheduleNextTurn(){
@@ -852,26 +831,26 @@ function movePlayer(p,r,c){
     state.finishOrder.push(p.id);
     p.rank = state.finishOrder.length;
     playBeep(880,0.3);
-    showMsg((p.name==='Du'?'Du hast':p.name+' hat')+' Platz '+p.rank+' erreicht! 🎉');
+    showMsg(p.name+' hat Platz '+p.rank+' erreicht! 🎉');
   }
 }
 
-// Bots always advance along the shortest path to the goal. If the exact BFS
-// next-cell is unavailable (blocked by a jump edge case), they pick whichever
-// legal move gets them closest to the goal — never a purely random step —
-// so they can no longer wander back and forth ("hin und her").
-function bestMoveTowardGoal(p, moves){
-  let best=null, bestDist=Infinity;
-  for(const [r,c] of moves){
-    const d = bfsToGoal(p, r, c).dist;
-    if(d<bestDist){ bestDist=d; best=[r,c]; }
-  }
-  return best;
+// Bots always move via shortest-path reasoning, but their `skill` persona value
+// still matters: strong bots almost always take the objectively best move,
+// weaker bots sometimes take a different — but never a *worse* — move, so they
+// still feel less sharp without ever wandering backwards ("hin und her").
+function pickBotMove(p, moves, dist){
+  const ranked = moves.map(m=>({m, d:bfsToGoal(p, m[0], m[1]).dist})).sort((a,b)=>a.d-b.d);
+  const persona = p.bot || {skill:0.8};
+  if(Math.random() < persona.skill) return ranked[0].m;
+  const nonRegress = ranked.filter(x=>x.d<=dist);
+  const pool = nonRegress.length ? nonRegress : [ranked[0]];
+  return pool[Math.floor(Math.random()*pool.length)].m;
 }
 function botTurn(p){
   if(state.over) return;
   const persona = p.bot || {aggr:0.4, skill:0.8};
-  const {dist, path} = bfsToGoal(p, p.r, p.c);
+  const {dist} = bfsToGoal(p, p.r, p.c);
   const moves = legalMoves(p);
 
   let placedWall=false;
@@ -881,14 +860,15 @@ function botTurn(p){
     if(rival) placedWall = attemptBlockingWall(p, rival);
   }
   if(!placedWall && moves.length){
-    if(dist!==Infinity && path.length>1){
-      const [nr,nc] = path[1];
-      const isLegal = moves.some(m=>m[0]===nr && m[1]===nc);
-      if(isLegal){ movePlayer(p,nr,nc); }
-      else { const best = bestMoveTowardGoal(p, moves); movePlayer(p,best[0],best[1]); }
-    } else {
-      const best = bestMoveTowardGoal(p, moves);
-      movePlayer(p,best[0],best[1]);
+    const [nr,nc] = pickBotMove(p, moves, dist);
+    movePlayer(p, nr, nc);
+    if(cfg.doubleStep && !p.finished){
+      const moves2 = legalMoves(p);
+      if(moves2.length){
+        const {dist:dist2} = bfsToGoal(p, p.r, p.c);
+        const [nr2,nc2] = pickBotMove(p, moves2, dist2);
+        movePlayer(p, nr2, nc2);
+      }
     }
   }
   updateLeaderboard();
@@ -914,6 +894,18 @@ function attemptBlockingWall(self, rival){
 
 function checkGameEnd(){
   if(state.over) return true;
+  if(cfg.teamMode){
+    const finisher = state.players.find(p=>p.finished);
+    if(finisher){
+      const winTeam = finisher.team;
+      state.players.forEach(p=>{
+        if(!p.finished){ p.finished=true; state.finishOrder.push(p.id); }
+      });
+      state.players.forEach(p=>{ p.rank = (p.team===winTeam) ? 1 : 2; });
+      endGame();
+      return true;
+    }
+  }
   const unfinished = state.players.filter(p=>!p.finished && p.alive);
   if(unfinished.length<=1){
     if(unfinished.length===1){
@@ -942,10 +934,15 @@ function endGame(){
   const humans = state.players.filter(p=>p.human);
   const title = document.getElementById('winTitle');
   const sub = document.getElementById('winSub');
-  if(humans.length===1){
+  if(cfg.teamMode){
+    const winTeam = ranked[0].team;
+    const teamName = winTeam===0 ? 'Team A' : 'Team B';
+    title.textContent = '🤝 '+teamName+' gewinnt!';
+    sub.textContent = ranked.filter(p=>p.team===winTeam).map(p=>p.name).join(' & ') + ' haben zuerst das Ziel erreicht.';
+  } else if(humans.length===1){
     const human = humans[0];
-    title.textContent = human.rank===1 ? '🏆 Du hast gewonnen!' : '🏁 Spiel beendet';
-    sub.textContent = 'Du bist als Platz '+human.rank+' von '+state.players.length+' Teilnehmern angekommen.';
+    title.textContent = human.rank===1 ? '🏆 '+human.name+' hat gewonnen!' : '🏁 Spiel beendet';
+    sub.textContent = human.name+' ist als Platz '+human.rank+' von '+state.players.length+' Teilnehmern angekommen.';
   } else if(humans.length===2){
     const winner = humans.find(h=>h.rank===1);
     title.textContent = winner ? '🏆 '+winner.name+' gewinnt das Duell!' : '🏁 Spiel beendet';
@@ -990,8 +987,7 @@ function cellSize(){ return canvas.width/state.size; }
 
 function drawGoalZone(){
   const cs = cellSize();
-  const center = Math.floor(state.size/2);
-  const cx = center*cs+cs/2, cy = center*cs+cs/2;
+  const cx = state.goalC*cs+cs/2, cy = state.goalR*cs+cs/2;
   const pulse = 0.5 + 0.5*Math.sin(Date.now()/260);
 
   ctx.save();
@@ -1033,6 +1029,22 @@ function render(){
   const cp = !state.over ? currentPlayer() : null;
   const activeHuman = (cp && cp.human && cp.alive && !cp.finished) ? cp : null;
   const isHumanTurn = !!activeHuman;
+
+  const fogOn = cfg.fogMode && !!activeHuman;
+  const fogR = cfg.fogRadius;
+  function visible(r,c){
+    if(!fogOn) return true;
+    return Math.max(Math.abs(r-activeHuman.r), Math.abs(c-activeHuman.c)) <= fogR;
+  }
+  if(fogOn){
+    ctx.fillStyle='#000000c8';
+    for(let r=0;r<state.size;r++){
+      for(let c=0;c<state.size;c++){
+        if(!visible(r,c)) ctx.fillRect(c*cs, r*cs, cs, cs);
+      }
+    }
+  }
+
   if(isHumanTurn && !state.wallMode){
     ctx.fillStyle = theme.highlight+'55';
     legalMoves(activeHuman).forEach(([r,c])=>{
@@ -1061,17 +1073,26 @@ function render(){
   }
 
   ctx.fillStyle = theme.wall;
-  state.hWalls.forEach(key=>{ const [r,c]=key.split(',').map(Number); ctx.fillRect(c*cs+2,(r+1)*cs-3,cs-4,6); });
-  state.vWalls.forEach(key=>{ const [r,c]=key.split(',').map(Number); ctx.fillRect((c+1)*cs-3,r*cs+2,6,cs-4); });
+  state.hWalls.forEach(key=>{
+    const [r,c]=key.split(',').map(Number);
+    if(fogOn && !(visible(r,c)||visible(r+1,c))) return;
+    ctx.fillRect(c*cs+2,(r+1)*cs-3,cs-4,6);
+  });
+  state.vWalls.forEach(key=>{
+    const [r,c]=key.split(',').map(Number);
+    if(fogOn && !(visible(r,c)||visible(r,c+1))) return;
+    ctx.fillRect((c+1)*cs-3,r*cs+2,6,cs-4);
+  });
 
   if(isHumanTurn && state.wallMode){
     ctx.fillStyle='#ffffff22';
-    for(let r=0;r<state.size-1;r++) for(let c=0;c<state.size;c++) if(!state.hWalls.has(r+','+c)) ctx.fillRect(c*cs+2,(r+1)*cs-2,cs-4,4);
-    for(let r=0;r<state.size;r++) for(let c=0;c<state.size-1;c++) if(!state.vWalls.has(r+','+c)) ctx.fillRect((c+1)*cs-2,r*cs+2,4,cs-4);
+    for(let r=0;r<state.size-1;r++) for(let c=0;c<state.size;c++) if(!state.hWalls.has(r+','+c) && (!fogOn || visible(r,c)||visible(r+1,c))) ctx.fillRect(c*cs+2,(r+1)*cs-2,cs-4,4);
+    for(let r=0;r<state.size;r++) for(let c=0;c<state.size-1;c++) if(!state.vWalls.has(r+','+c) && (!fogOn || visible(r,c)||visible(r,c+1))) ctx.fillRect((c+1)*cs-2,r*cs+2,4,cs-4);
   }
 
   state.players.forEach(p=>{
     if(!p.alive) return;
+    if(fogOn && p!==activeHuman && !visible(p.r,p.c)) return;
     const cx=p.c*cs+cs/2, cy=p.r*cs+cs/2, rad=cs*0.32;
     ctx.save();
     if(p.finished) ctx.globalAlpha=0.35;
@@ -1082,6 +1103,12 @@ function render(){
     if(p.human){
       ctx.lineWidth=Math.max(2,cs*0.06); ctx.strokeStyle= p.humanIndex===1 ? '#4cc9f0' : '#ffd166';
       ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.stroke();
+    }
+    if(cfg.teamMode && p.team!=null){
+      ctx.lineWidth=Math.max(2,cs*0.045); ctx.strokeStyle = p.team===0 ? '#ffd166' : '#06d6a0';
+      ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.arc(cx,cy,rad+cs*0.09,0,Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
     }
     if(p.finished){
       ctx.fillStyle='#000000cc'; ctx.font=(cs*0.28)+'px sans-serif';
@@ -1181,9 +1208,10 @@ function updateTurnInfo(){
   if(!state || state.over){ el.textContent='Spiel beendet'; return; }
   const p = currentPlayer();
   const wallsTxt = cfg.unlimitedWalls ? '∞' : p.wallsLeft;
-  const turnTxt = p.human ? (p.name==='Du' ? 'Du bist am Zug' : p.name+' ist am Zug') : p.name+' ist am Zug';
+  const turnTxt = p.name+' ist am Zug';
   const roundTxt = (typeof state.round==='number') ? ' · Runde '+(state.round+1) : '';
-  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + turnTxt + ' · Mauern: '+wallsTxt + roundTxt;
+  const stepTxt = (cfg.doubleStep && p.human && state.stepsTaken>=1) ? ' · 2. Schritt möglich' : '';
+  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + turnTxt + ' · Mauern: '+wallsTxt + roundTxt + stepTxt;
 }
 function updateLeaderboard(){
   const lb = document.getElementById('leaderboard');
