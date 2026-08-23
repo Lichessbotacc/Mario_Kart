@@ -37,6 +37,7 @@
   select{ background:#ffffff14; color:var(--text); border:1px solid #ffffff2a; border-radius:6px; padding:5px 8px; font-size:13px; flex:2;}
   button{ cursor:pointer; border:none; border-radius:8px; font-weight:600; font-size:12.5px; padding:8px 12px; transition:transform .12s ease, box-shadow .12s ease;}
   button:active{transform:scale(.96);}
+  button:disabled{opacity:.4; cursor:not-allowed;}
   .btnPrimary{ background:linear-gradient(90deg,var(--accent2),#1fb6ff); color:#0a0a1a; box-shadow:0 4px 14px #06d6a055;}
   .btnGhost{ background:#ffffff14; color:var(--text); border:1px solid #ffffff2a;}
   .btnGhost.active{ background:linear-gradient(90deg,var(--accent),#ff9a3c); color:#0a0a1a;}
@@ -62,7 +63,7 @@
   .lb-chip .swatch{width:9px; height:9px; border-radius:50%;}
   #canvasWrap{flex:1; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:10px; min-height:0; min-width:0;}
   canvas{background:#12102a; border-radius:16px; box-shadow:0 20px 60px #00000066, inset 0 0 0 1px #ffffff1a; flex-shrink:1; max-width:100%; max-height:100%;}
-  #msg{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:#000000aa; padding:8px 18px; border-radius:20px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .3s ease; z-index:6;}
+  #msg{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:#000000aa; padding:8px 18px; border-radius:20px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .3s ease; z-index:6; max-width:80%; text-align:center;}
   #msg.show{opacity:1;}
   #goalLabel{position:absolute; font-size:12px; font-weight:700; color:var(--accent); pointer-events:none; text-shadow:0 0 8px #000; letter-spacing:.03em; z-index:6;}
   #h2hBar{ padding:5px 16px; background:#00000040; font-size:12.5px; text-align:center; font-weight:600; border-top:1px solid #ffffff14; display:none; flex-shrink:0;}
@@ -79,7 +80,9 @@
   #profileOverlay table{width:100%; max-width:700px; border-collapse:collapse; font-size:13px; margin-bottom:16px;}
   #profileOverlay th, #profileOverlay td{padding:7px 10px; text-align:left; border-bottom:1px solid #ffffff1a;}
   #profileOverlay th{color:var(--accent2); font-size:11px; text-transform:uppercase; cursor:pointer;}
-  #profileTableWrap{max-height:45vh; overflow-y:auto; width:100%; max-width:700px;}
+  #profileTableWrap{max-height:40vh; overflow-y:auto; width:100%; max-width:700px;}
+  #modeTabs{width:100%; max-width:700px; display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; justify-content:center;}
+  #modeTabs button{padding:6px 10px; font-size:11.5px;}
   #historyWrap{width:100%; max-width:700px; margin-top:6px;}
   #historyWrap h3{font-size:12.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:8px;}
   #historyList{font-size:12px; color:var(--muted); max-height:160px; overflow-y:auto;}
@@ -96,7 +99,7 @@
 
 <div id="sidebar">
   <h1>Quoridor Arena</h1>
-  <div class="sub">Elo-Ranking · eigenes Bot-Roster · wähle deine Gegner oder lass Bots gegeneinander spielen</div>
+  <div class="sub">Elo-Ranking pro Modus · eigenes Bot-Roster · wähle deine Gegner oder lass Bots gegeneinander spielen</div>
 
   <div class="group">
     <h3>Modus</h3>
@@ -114,10 +117,13 @@
     </div>
     <div class="row" style="font-size:11px; color:var(--muted);">Beide auf einem Bildschirm: Spieler 1 = Pfeiltasten/Klick, Spieler 2 = WASD/Klick. Bots optional dazu wählbar.</div>
     <div class="row" style="font-size:11px; color:var(--muted);">Kein Spieler + 2+ Bots = reines Bot-vs-Bot Match zum Zuschauen.</div>
-    <div class="row"><label for="autoMode">🔁 24/7 Zufalls-1v1 (Dauerlauf)</label>
+    <div class="row"><label for="autoMode">🌐 24/7 Vollzufalls-Dauerlauf</label>
       <input type="checkbox" id="autoMode" style="flex:0; width:18px; height:18px;">
     </div>
-    <div class="row" style="font-size:11px; color:var(--muted);">An = 2 zufällige Bots spielen endlos nacheinander gegeneinander, immer 1vs1</div>
+    <div class="row" style="font-size:11px; color:var(--muted);">
+      An = Bots spielen endlos weiter: bei jeder Partie werden Spieleranzahl (2–10), Feldgröße und alle Spielmodi (Nebel, Doppelzug, Team, Wanderndes Ziel, Mauern verfallen) zufällig neu gewürfelt. Jeder entstehende Modus bekommt seine eigene Elo-Rangliste (siehe „Profile &amp; Elo“).<br>
+      <b>Wichtig:</b> Ein Browser-Tab kann nicht rechnen, wenn die Seite komplett geschlossen ist — echtes Weiterspielen „im Hintergrund ohne offene Seite“ ist technisch nicht möglich. Stattdessen merkt sich die Seite, wann du zuletzt da warst, und simuliert beim nächsten Öffnen automatisch eine passende Anzahl verpasster Partien im Schnelldurchlauf nach, bevor sie live weiterläuft.
+    </div>
   </div>
 
   <div class="group">
@@ -128,7 +134,7 @@
     <div class="row"><label for="p2NameInput">Name Spieler 2</label>
       <input type="text" id="p2NameInput" maxlength="16" style="flex:2; background:#ffffff14; color:var(--text); border:1px solid #ffffff2a; border-radius:6px; padding:5px 8px; font-size:13px;">
     </div>
-    <div class="row" style="font-size:11px; color:var(--muted);">Spielst du allein, wähle oben unter "Ich spiele als", welches der beiden Profile gerade Elo &amp; Statistik sammelt. Bei 2-Spieler-Modus spielen automatisch beide.</div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Spielst du allein, wähle oben unter "Ich spiele als", welches der beiden Profile gerade Elo &amp; Statistik sammelt. Bei 2-Spieler-Modus spielen automatisch beide. Namen gelten modusübergreifend.</div>
   </div>
 
   <div class="group">
@@ -213,7 +219,7 @@
     • <b>Spieler 1</b>: Pfeiltasten oder Klick, <b>W</b> schaltet Mauer-Modus um (wenn Spieler 1 dran ist).<br>
     • <b>Spieler 2</b> (lokaler Multiplayer): <b>WASD</b> oder Klick, <b>W</b> bewegt nach oben statt Mauer-Modus umzuschalten.<br>
     • <b>Esc</b> schließt Fenster. <b>Mauern verfallen</b>: platzierte Mauern verschwinden nach X Runden automatisch und werden dem Besitzer zurückgegeben.<br>
-    • <b>24/7 Zufalls-1v1</b>: läuft endlos, immer 2 zufällige Bots gegeneinander, automatischer Rematch nach jedem Spiel.
+    • <b>Vollzufalls-Dauerlauf</b>: läuft endlos, jede Partie mit zufälliger Spieleranzahl, Feldgröße und Modus-Kombination.
   </div>
 </div>
 
@@ -243,7 +249,8 @@
 
     <div class="overlay" id="profileOverlay">
       <h2>📊 Profile &amp; Elo-Rangliste</h2>
-      <p>Wie bei einer Schach-Plattform: jedes Match verändert die Elo aller Teilnehmer.</p>
+      <p>Wie bei einer Schach-Plattform: jedes Match verändert die Elo aller Teilnehmer — und jeder Spielmodus führt seine eigene, getrennte Rangliste.</p>
+      <div id="modeTabs"></div>
       <div id="profileTableWrap">
         <table>
           <thead><tr><th>Rang</th><th>Name</th><th>Elo</th><th>Spiele</th><th>Siege</th><th>Siegquote</th><th>Ø Platz</th><th>Top3</th></tr></thead>
@@ -251,11 +258,12 @@
         </table>
       </div>
       <div id="historyWrap">
-        <h3>Letzte Matches</h3>
+        <h3>Letzte Matches (aktueller Modus)</h3>
         <div id="historyList"></div>
       </div>
-      <div class="miniRow" style="max-width:400px;">
-        <button id="resetProfilesBtn" class="btnGhost" style="border-color:#ef476f66; color:#ef476f;">Alle Statistiken zurücksetzen</button>
+      <div class="miniRow" style="max-width:460px;">
+        <button id="resetModeBtn" class="btnGhost" style="border-color:#ef476f66; color:#ef476f;">Nur diesen Modus zurücksetzen</button>
+        <button id="resetProfilesBtn" class="btnGhost" style="border-color:#ef476f66; color:#ef476f;">Alle Modi zurücksetzen</button>
         <button id="closeProfileBtn" class="btnPrimary">Schließen</button>
       </div>
     </div>
@@ -298,30 +306,73 @@ const BOT_ROSTER = [
   {id:'b_meister',  name:'Meister',      emoji:'👑', style:'Der stärkste Bot',        aggr:0.60, skill:0.98},
 ];
 
-/* ============================ Profile / Elo (localStorage) ============================ */
-const STORAGE_KEY = 'quoridorProfiles_v1';
-function loadProfiles(){
-  let raw=null;
-  try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){}
-  let data = raw ? JSON.parse(raw) : {};
-  if(!data['human']) data['human'] = freshProfile('Spieler 1');
-  if(!data['human2']) data['human2'] = freshProfile('Spieler 2');
-  BOT_ROSTER.forEach(b=>{ if(!data[b.id]) data[b.id] = freshProfile(b.name); });
-  return data;
+/* ============================ Modus-Schlüssel ============================ */
+const MODE_FLAG_DEFS = [
+  {key:'fog',    label:'🌫️ Nebel',      cfgFlag:'fogMode'},
+  {key:'doppel', label:'⏩ Doppelzug',   cfgFlag:'doubleStep'},
+  {key:'team',   label:'🤝 Team',       cfgFlag:'teamMode'},
+  {key:'wander', label:'🔄 Wandernd',   cfgFlag:'wanderGoal'},
+  {key:'expire', label:'🕐 Verfall',    cfgFlag:'wallExpire'},
+];
+function getModeKey(c){
+  const flags = MODE_FLAG_DEFS.filter(m=>c[m.cfgFlag]).map(m=>m.key).sort();
+  return flags.length ? flags.join('+') : 'standard';
 }
-function saveProfiles(data){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+function modeLabel(key){
+  if(!key || key==='standard') return '⭐ Standard';
+  return key.split('+').map(k=>{
+    const def = MODE_FLAG_DEFS.find(m=>m.key===k);
+    return def ? def.label : k;
+  }).join(' + ');
 }
+
+/* ============================ Persistente Daten (window.storage) ============================ */
+let PROFILES_BY_MODE = {};   // { modeKey: { playerKey: {name,elo,games,wins,top3,rankSum} } }
+let H2H_BY_MODE = {};        // { modeKey: { "keyA__keyB": {names,wins} } }
+let HISTORY = [];            // [{date,size,modeKey,players:[{name,rank}]}]
+let FOREVER_CONFIG = { enabled:false, lastActive: Date.now() };
+let DISPLAY_NAMES = { human:'Spieler 1', human2:'Spieler 2' };
+let currentModeTab = 'standard';
+let SIM_SILENT = false; // true while headlessly fast-forwarding missed games
+
 function freshProfile(name){
   return { name, elo:1000, games:0, wins:0, top3:0, rankSum:0 };
 }
-let PROFILES = loadProfiles();
+function getModeProfiles(modeKey){
+  if(!PROFILES_BY_MODE[modeKey]){
+    const mp = { human: freshProfile(DISPLAY_NAMES.human), human2: freshProfile(DISPLAY_NAMES.human2) };
+    BOT_ROSTER.forEach(b=>{ mp[b.id] = freshProfile(b.name); });
+    PROFILES_BY_MODE[modeKey] = mp;
+  }
+  return PROFILES_BY_MODE[modeKey];
+}
 
-function computeEloUpdates(participants){
+async function storageGetJSON(key, fallback){
+  try{
+    const r = await window.storage.get(key, false);
+    return r && r.value ? JSON.parse(r.value) : fallback;
+  }catch(e){ return fallback; }
+}
+function persistProfiles(){ window.storage.set('profilesByMode', JSON.stringify(PROFILES_BY_MODE), false).catch(()=>{}); }
+function persistH2H(){ window.storage.set('h2hByMode', JSON.stringify(H2H_BY_MODE), false).catch(()=>{}); }
+function persistHistory(){ window.storage.set('matchHistory', JSON.stringify(HISTORY), false).catch(()=>{}); }
+function persistForeverConfig(){ window.storage.set('foreverConfig', JSON.stringify(FOREVER_CONFIG), false).catch(()=>{}); }
+function persistDisplayNames(){ window.storage.set('displayNames', JSON.stringify(DISPLAY_NAMES), false).catch(()=>{}); }
+
+async function loadAllData(){
+  PROFILES_BY_MODE = await storageGetJSON('profilesByMode', {});
+  H2H_BY_MODE = await storageGetJSON('h2hByMode', {});
+  HISTORY = await storageGetJSON('matchHistory', []);
+  FOREVER_CONFIG = await storageGetJSON('foreverConfig', {enabled:false, lastActive:Date.now()});
+  DISPLAY_NAMES = await storageGetJSON('displayNames', {human:'Spieler 1', human2:'Spieler 2'});
+  getModeProfiles('standard');
+}
+
+function computeEloUpdates(mp, participants){
   const n = participants.length;
   if(n<2) return {};
   const K = 24;
-  const eloOf = key => PROFILES[key] ? PROFILES[key].elo : 1000;
+  const eloOf = key => mp[key] ? mp[key].elo : 1000;
   const deltas = {};
   participants.forEach(p=> deltas[p.key]=0);
   for(let i=0;i<n;i++){
@@ -336,10 +387,11 @@ function computeEloUpdates(participants){
   return deltas;
 }
 
-function applyMatchResults(finishedList){
-  const deltas = computeEloUpdates(finishedList);
+function applyMatchResults(modeKey, finishedList){
+  const mp = getModeProfiles(modeKey);
+  const deltas = computeEloUpdates(mp, finishedList);
   finishedList.forEach(p=>{
-    const prof = PROFILES[p.key] || (PROFILES[p.key]=freshProfile(p.name));
+    const prof = mp[p.key] || (mp[p.key]=freshProfile(p.name));
     prof.name = p.name;
     prof.games++;
     if(p.rank===1) prof.wins++;
@@ -347,56 +399,49 @@ function applyMatchResults(finishedList){
     prof.rankSum += p.rank;
     prof.elo = Math.round((prof.elo + deltas[p.key]) * 10)/10;
   });
-  saveProfiles(PROFILES);
+  persistProfiles();
   return deltas;
 }
 
-/* ============================ Head-to-Head 1v1 Scores (persisted) ============================ */
-const H2H_KEY = 'quoridorH2H_v1';
-function loadH2H(){ try{ return JSON.parse(localStorage.getItem(H2H_KEY))||{}; }catch(e){ return {}; } }
-function saveH2H(d){ try{ localStorage.setItem(H2H_KEY, JSON.stringify(d)); }catch(e){} }
-let H2H = loadH2H();
+/* ============================ Head-to-Head 1v1 Scores (pro Modus) ============================ */
 function h2hKey(a,b){ return [a,b].sort().join('__'); }
 function stripEmoji(s){ return s.replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF]\uFE0F?/gu,'').trim(); }
-function updateH2HAfterGame(forElo){
+function updateH2HAfterGame(modeKey, forElo){
   if(forElo.length!==2) return;
   const [a,b] = forElo;
+  if(!H2H_BY_MODE[modeKey]) H2H_BY_MODE[modeKey] = {};
   const key = h2hKey(a.key,b.key);
-  const rec = H2H[key] || {names:{}, wins:{}};
+  const rec = H2H_BY_MODE[modeKey][key] || {names:{}, wins:{}};
   rec.names[a.key]=a.name; rec.names[b.key]=b.name;
   rec.wins[a.key]=rec.wins[a.key]||0; rec.wins[b.key]=rec.wins[b.key]||0;
   const winner = forElo.find(p=>p.rank===1);
   if(winner) rec.wins[winner.key]++;
-  H2H[key]=rec;
-  saveH2H(H2H);
-  renderH2HBar(a.key,b.key);
+  H2H_BY_MODE[modeKey][key]=rec;
+  persistH2H();
+  if(!SIM_SILENT) renderH2HBar(modeKey, a.key, b.key);
 }
-function renderH2HBar(keyA,keyB){
+function renderH2HBar(modeKey, keyA, keyB){
   const bar = document.getElementById('h2hBar');
   if(!state || state.players.length!==2){ bar.style.display='none'; return; }
-  const key = h2hKey(keyA,keyB);
-  const rec = H2H[key];
+  const rec = (H2H_BY_MODE[modeKey]||{})[h2hKey(keyA,keyB)];
   bar.style.display='block';
-  if(!rec){ bar.innerHTML='🥇 Head-to-Head: noch kein gespeicherter Score für dieses Duell.'; return; }
+  if(!rec){ bar.innerHTML='🥇 Head-to-Head ('+modeLabel(modeKey)+'): noch kein gespeicherter Score für dieses Duell.'; return; }
   const ids = Object.keys(rec.wins);
-  bar.innerHTML = '🥇 Head-to-Head &nbsp; ' + ids.map(id=>'<b>'+rec.names[id]+'</b>: '+rec.wins[id]).join(' &nbsp;–&nbsp; ');
+  bar.innerHTML = '🥇 '+modeLabel(modeKey)+' &nbsp; ' + ids.map(id=>'<b>'+rec.names[id]+'</b>: '+rec.wins[id]).join(' &nbsp;–&nbsp; ');
 }
 
-/* ============================ Match history (persisted) ============================ */
-const HISTORY_KEY = 'quoridorHistory_v1';
-function loadHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY))||[]; }catch(e){ return []; } }
-function saveHistory(h){ try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }catch(e){} }
-let HISTORY = loadHistory();
-function addHistoryEntry(ranked, size){
-  const entry = { date:new Date().toLocaleString('de-DE'), size, players: ranked.map(p=>({name:p.name,rank:p.rank})) };
+/* ============================ Match history (pro Modus gefiltert) ============================ */
+function addHistoryEntry(modeKey, ranked, size){
+  const entry = { date:new Date().toLocaleString('de-DE'), size, modeKey, players: ranked.map(p=>({name:p.name,rank:p.rank})) };
   HISTORY.unshift(entry);
-  HISTORY = HISTORY.slice(0,20);
-  saveHistory(HISTORY);
+  HISTORY = HISTORY.slice(0,300);
+  persistHistory();
 }
 function renderHistory(){
   const el = document.getElementById('historyList');
-  if(!HISTORY.length){ el.textContent='Noch keine Matches gespeichert.'; return; }
-  el.innerHTML = HISTORY.map(h=>{
+  const filtered = HISTORY.filter(h=>h.modeKey===currentModeTab).slice(0,20);
+  if(!filtered.length){ el.textContent='Noch keine Matches in diesem Modus gespeichert.'; return; }
+  el.innerHTML = filtered.map(h=>{
     const order = h.players.map(p=> (p.rank===1?'🥇':p.rank===2?'🥈':p.rank===3?'🥉':p.rank+'.') +' '+p.name).join(' · ');
     return '<div style="padding:5px 0; border-bottom:1px solid #ffffff14;"><span style="color:var(--muted);">'+h.date+' ('+h.size+'×'+h.size+')</span><br>'+order+'</div>';
   }).join('');
@@ -409,6 +454,7 @@ function ensureAudio(){
   return audioCtx;
 }
 function playBeep(freq,dur){
+  if(SIM_SILENT) return;
   const cb = document.getElementById('soundToggle');
   if(!cb || !cb.checked) return;
   const ctx2 = ensureAudio(); if(!ctx2) return;
@@ -427,15 +473,16 @@ const botListEl = document.getElementById('botList');
 const selectedBots = new Set();
 function renderBotList(){
   const theme = THEMES[document.getElementById('theme').value];
+  const stdProfiles = getModeProfiles('standard');
   botListEl.innerHTML = BOT_ROSTER.map((b,i)=>{
-    const prof = PROFILES[b.id];
+    const prof = stdProfiles[b.id];
     const color = theme.palette[i % theme.palette.length];
     const checked = selectedBots.has(b.id) ? 'checked' : '';
     return `<label class="botItem">
       <input type="checkbox" data-id="${b.id}" ${checked}>
       <span class="botAvatar" style="background:${color}; color:${color};"></span>
       <span class="botMeta"><b>${b.emoji} ${b.name}</b><span>${b.style}</span></span>
-      <span class="botElo">${Math.round(prof.elo)}</span>
+      <span class="botElo" title="Elo im Standard-Modus">${Math.round(prof.elo)}</span>
     </label>`;
   }).join('');
   botListEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
@@ -482,16 +529,20 @@ bindRange('wanderGoalRounds','wanderGoalRoundsOut');
 document.getElementById('fogMode').addEventListener('change', ()=>{ if(state) render(); });
 
 function initProfileNameInputs(){
-  document.getElementById('p1NameInput').value = PROFILES['human'].name;
-  document.getElementById('p2NameInput').value = PROFILES['human2'].name;
+  document.getElementById('p1NameInput').value = DISPLAY_NAMES.human;
+  document.getElementById('p2NameInput').value = DISPLAY_NAMES.human2;
 }
 document.getElementById('p1NameInput').addEventListener('input', function(){
   const v = this.value.trim() || 'Spieler 1';
-  PROFILES['human'].name = v; saveProfiles(PROFILES);
+  DISPLAY_NAMES.human = v;
+  Object.values(PROFILES_BY_MODE).forEach(mp=>{ if(mp.human) mp.human.name = v; });
+  persistDisplayNames(); persistProfiles();
 });
 document.getElementById('p2NameInput').addEventListener('input', function(){
   const v = this.value.trim() || 'Spieler 2';
-  PROFILES['human2'].name = v; saveProfiles(PROFILES);
+  DISPLAY_NAMES.human2 = v;
+  Object.values(PROFILES_BY_MODE).forEach(mp=>{ if(mp.human2) mp.human2.name = v; });
+  persistDisplayNames(); persistProfiles();
 });
 document.getElementById('player2Enabled').addEventListener('change', function(){
   document.getElementById('soloProfileSelect').disabled = this.checked;
@@ -510,11 +561,22 @@ document.getElementById('closeResultBtn').addEventListener('click', ()=> documen
 document.getElementById('profileBtn').addEventListener('click', openProfileOverlay);
 document.getElementById('closeProfileBtn').addEventListener('click', ()=> document.getElementById('profileOverlay').classList.remove('show'));
 document.getElementById('resetProfilesBtn').addEventListener('click', ()=>{
-  if(confirm('Wirklich alle Elo-Werte und Statistiken zurücksetzen?')){
-    PROFILES = {}; PROFILES['human']=freshProfile('Spieler 1'); PROFILES['human2']=freshProfile('Spieler 2');
-    BOT_ROSTER.forEach(b=>PROFILES[b.id]=freshProfile(b.name));
-    saveProfiles(PROFILES);
-    renderBotList(); openProfileOverlay(); initProfileNameInputs();
+  if(confirm('Wirklich ALLE Modi, Elo-Werte und Statistiken zurücksetzen?')){
+    PROFILES_BY_MODE = {}; H2H_BY_MODE = {}; HISTORY = [];
+    getModeProfiles('standard');
+    currentModeTab = 'standard';
+    persistProfiles(); persistH2H(); persistHistory();
+    renderBotList(); renderModeTabs(); renderProfileTable(); renderHistory(); initProfileNameInputs();
+  }
+});
+document.getElementById('resetModeBtn').addEventListener('click', ()=>{
+  if(confirm('Nur den Modus "'+modeLabel(currentModeTab)+'" zurücksetzen?')){
+    delete PROFILES_BY_MODE[currentModeTab];
+    delete H2H_BY_MODE[currentModeTab];
+    HISTORY = HISTORY.filter(h=>h.modeKey!==currentModeTab);
+    getModeProfiles(currentModeTab);
+    persistProfiles(); persistH2H(); persistHistory();
+    renderBotList(); renderModeTabs(); renderProfileTable(); renderHistory();
   }
 });
 document.getElementById('wallModeBtn').addEventListener('click', ()=>{
@@ -527,6 +589,9 @@ document.getElementById('wallModeBtn').addEventListener('click', ()=>{
 });
 document.getElementById('autoMode').addEventListener('change', function(){
   const on = this.checked;
+  FOREVER_CONFIG.enabled = on;
+  FOREVER_CONFIG.lastActive = Date.now();
+  persistForeverConfig();
   const humanCb = document.getElementById('humanPlays');
   if(on){ humanCb.checked=false; }
   humanCb.disabled = on;
@@ -536,16 +601,8 @@ document.getElementById('autoMode').addEventListener('change', function(){
   document.getElementById('sel5').disabled = on;
   document.getElementById('sel10').disabled = on;
   document.getElementById('sel19').disabled = on;
-  if(on) startAutoRandom1v1();
+  if(on) startForeverLiveGame();
 });
-function startAutoRandom1v1(){
-  document.getElementById('humanPlays').checked = false;
-  selectedBots.clear();
-  const pool = [...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,2);
-  pool.forEach(b=>selectedBots.add(b.id));
-  renderBotList();
-  startGame();
-}
 document.getElementById('pauseBtn').addEventListener('click', ()=>{
   if(!state || state.over) return;
   state.paused = !state.paused;
@@ -556,9 +613,26 @@ document.getElementById('pauseBtn').addEventListener('click', ()=>{
   else { scheduleNextTurn(); }
 });
 
-function openProfileOverlay(){
-  const rows = Object.keys(PROFILES).map(key=>({key, ...PROFILES[key]}))
-    .sort((a,b)=>b.elo-a.elo);
+/* ============================ Profile overlay / mode tabs ============================ */
+function renderModeTabs(){
+  const modes = Object.keys(PROFILES_BY_MODE).sort((a,b)=>{
+    if(a==='standard') return -1; if(b==='standard') return 1;
+    return a.localeCompare(b);
+  });
+  if(!modes.length) modes.push('standard');
+  if(!modes.includes(currentModeTab)) currentModeTab = modes[0];
+  const el = document.getElementById('modeTabs');
+  el.innerHTML = modes.map(m=>`<button class="btnGhost ${m===currentModeTab?'active':''}" data-mode="${m}">${modeLabel(m)}</button>`).join('');
+  el.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentModeTab = btn.dataset.mode;
+      renderModeTabs(); renderProfileTable(); renderHistory();
+    });
+  });
+}
+function renderProfileTable(){
+  const mp = getModeProfiles(currentModeTab);
+  const rows = Object.keys(mp).map(key=>({key, ...mp[key]})).sort((a,b)=>b.elo-a.elo);
   const body = document.getElementById('profileBody');
   body.innerHTML = rows.map((p,i)=>{
     const winrate = p.games? Math.round(100*p.wins/p.games)+'%' : '—';
@@ -569,6 +643,11 @@ function openProfileOverlay(){
       <td>${p.games}</td><td>${p.wins}</td><td>${winrate}</td><td>${avgRank}</td><td>${p.top3}</td>
     </tr>`;
   }).join('');
+}
+function openProfileOverlay(){
+  getModeProfiles('standard');
+  renderModeTabs();
+  renderProfileTable();
   renderHistory();
   document.getElementById('profileOverlay').classList.add('show');
 }
@@ -580,11 +659,11 @@ function startGame(){
   const chosenBots = BOT_ROSTER.filter(b=>selectedBots.has(b.id));
   const participants = [];
   if(humanPlays && player2){
-    participants.push({key:'human', name:PROFILES['human'].name, human:true, humanIndex:0, bot:null});
-    participants.push({key:'human2', name:PROFILES['human2'].name, human:true, humanIndex:1, bot:null});
+    participants.push({key:'human', name:DISPLAY_NAMES.human, human:true, humanIndex:0, bot:null});
+    participants.push({key:'human2', name:DISPLAY_NAMES.human2, human:true, humanIndex:1, bot:null});
   } else if(humanPlays){
     const soloKey = document.getElementById('soloProfileSelect').value;
-    participants.push({key:soloKey, name:PROFILES[soloKey].name, human:true, humanIndex:0, bot:null});
+    participants.push({key:soloKey, name:DISPLAY_NAMES[soloKey], human:true, humanIndex:0, bot:null});
   }
   chosenBots.forEach(b=> participants.push({key:b.id, name:b.name+' '+b.emoji, human:false, bot:b}));
 
@@ -622,14 +701,75 @@ function startGame(){
   render();
   updateLeaderboard();
   updateTurnInfo();
-  if(state.players.length===2) renderH2HBar(state.players[0].key, state.players[1].key);
+  if(state.players.length===2) renderH2HBar(state.modeKey, state.players[0].key, state.players[1].key);
   else document.getElementById('h2hBar').style.display='none';
   startAnimLoop();
   scheduleNextTurn();
 }
 
-function buildState(cfg, participants){
-  const size = cfg.size;
+/* ============================ Vollzufalls-Dauerlauf ============================ */
+function randomForeverConfig(){
+  const n = 2 + Math.floor(Math.random()*9); // 2..10 Bots
+  const chosen = [...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,n);
+  const size = [9,11,13,15,17][Math.floor(Math.random()*5)];
+  const wallExpire = Math.random()<0.25;
+  const unlimitedWalls = !wallExpire && Math.random()<0.15;
+  return {
+    chosenIds: chosen.map(b=>b.id),
+    size,
+    wallsPerPlayer: 2+Math.floor(Math.random()*9),
+    unlimitedWalls,
+    wallExpire,
+    wallExpireRounds: 4+Math.floor(Math.random()*15),
+    fogMode: Math.random()<0.3,
+    fogRadius: 2+Math.floor(Math.random()*5),
+    doubleStep: Math.random()<0.3,
+    teamMode: Math.random()<0.3,
+    wanderGoal: Math.random()<0.3,
+    wanderGoalRounds: 3+Math.floor(Math.random()*12),
+  };
+}
+function foreverCfgFromRandom(rc, botDelay, themeKey){
+  return {
+    size: rc.size, wallsPerPlayer: rc.wallsPerPlayer, unlimitedWalls: rc.unlimitedWalls,
+    wallExpire: rc.wallExpire, wallExpireRounds: rc.wallExpireRounds,
+    fogMode: rc.fogMode, fogRadius: rc.fogRadius,
+    doubleStep: rc.doubleStep, teamMode: rc.teamMode,
+    wanderGoal: rc.wanderGoal, wanderGoalRounds: rc.wanderGoalRounds,
+    botDelay: botDelay, theme: THEMES[themeKey]
+  };
+}
+function startForeverLiveGame(){
+  document.getElementById('humanPlays').checked = false;
+  const rc = randomForeverConfig();
+  selectedBots.clear();
+  rc.chosenIds.forEach(id=>selectedBots.add(id));
+  renderBotList();
+  const participants = rc.chosenIds.map(id=>{
+    const b = BOT_ROSTER.find(x=>x.id===id);
+    return {key:b.id, name:b.name+' '+b.emoji, human:false, bot:b};
+  });
+  const themeKey = document.getElementById('theme').value;
+  cfg = foreverCfgFromRandom(rc, +document.getElementById('botDelay').value, themeKey);
+
+  if(state && state.timer) clearTimeout(state.timer);
+  state = buildState(cfg, participants);
+  document.getElementById('winOverlay').classList.remove('show');
+  showMsg('🌐 Vollzufall: '+modeLabel(state.modeKey)+' · '+participants.length+' Bots · '+rc.size+'×'+rc.size);
+  resizeCanvas();
+  render();
+  updateLeaderboard();
+  updateTurnInfo();
+  if(state.players.length===2) renderH2HBar(state.modeKey, state.players[0].key, state.players[1].key);
+  else document.getElementById('h2hBar').style.display='none';
+  startAnimLoop();
+  scheduleNextTurn();
+  FOREVER_CONFIG.lastActive = Date.now();
+  persistForeverConfig();
+}
+
+function buildState(cfgArg, participants){
+  const size = cfgArg.size;
   const center = Math.floor(size/2);
   const n = participants.length;
   const players = participants.map((part,i)=>{
@@ -647,9 +787,9 @@ function buildState(cfg, participants){
     return {
       key:part.key, id:i, human:part.human, humanIndex:part.humanIndex, bot:part.bot,
       r,c, goalRow:center, goalCol:center, startEdge:edge,
-      wallsLeft: cfg.wallsPerPlayer,
-      color: cfg.theme.palette[i % cfg.theme.palette.length],
-      team: cfg.teamMode ? (i%2) : null,
+      wallsLeft: cfgArg.wallsPerPlayer,
+      color: cfgArg.theme.palette[i % cfgArg.theme.palette.length],
+      team: cfgArg.teamMode ? (i%2) : null,
       alive:true, finished:false, rank:null,
       name: part.name
     };
@@ -671,7 +811,8 @@ function buildState(cfg, participants){
     goalR:center, goalC:center, lastGoalMoveRound:0,
     turnOrder: players.map(p=>p.id),
     turnIdx:0, wallMode:false, over:false, paused:false, stepsTaken:0,
-    finishOrder:[], timer:null
+    finishOrder:[], timer:null,
+    modeKey: getModeKey(cfgArg)
   };
 }
 
@@ -777,7 +918,7 @@ function expireOldWalls(){
   if(any){ showMsg('🕐 Eine Mauer ist verfallen und wurde zurückgegeben.'); updateTurnInfo(); }
 }
 
-/* ============================ Turn engine — sequential ============================ */
+/* ============================ Turn engine — sequential (live) ============================ */
 function currentPlayer(){ return state.players[state.turnOrder[state.turnIdx % state.turnOrder.length]]; }
 
 function advanceTurn(){
@@ -925,9 +1066,12 @@ function endGame(){
   clearTimeout(state.timer);
   const ranked = state.players.filter(p=>p.rank!=null).sort((a,b)=>a.rank-b.rank);
   const forElo = ranked.map(p=>({key:p.key, name:stripEmoji(p.name), rank:p.rank}));
-  const deltas = applyMatchResults(forElo);
-  addHistoryEntry(ranked.map(p=>({name:p.name, rank:p.rank})), state.size);
-  updateH2HAfterGame(forElo);
+  const deltas = applyMatchResults(state.modeKey, forElo);
+  addHistoryEntry(state.modeKey, ranked, state.size);
+  updateH2HAfterGame(state.modeKey, forElo);
+
+  if(SIM_SILENT) return; // Stats sind gespeichert — UI/Sound/Overlay während des Nachsimulierens überspringen
+
   playBeep(660,0.15);
   setTimeout(()=>playBeep(990,0.35),150);
 
@@ -948,16 +1092,17 @@ function endGame(){
     title.textContent = winner ? '🏆 '+winner.name+' gewinnt das Duell!' : '🏁 Spiel beendet';
     sub.textContent = humans.map(h=>h.name+': Platz '+h.rank).join(' · ');
   } else {
-    title.textContent = '🏁 Bot-Match beendet';
+    title.textContent = '🏁 Bot-Match beendet ('+modeLabel(state.modeKey)+')';
     sub.textContent = ranked[0].name + ' hat als Erster das Ziel erreicht.';
   }
 
+  const mp = getModeProfiles(state.modeKey);
   const body = document.getElementById('resultBody');
   body.innerHTML = ranked.map(p=>{
     const d = deltas[p.key] || 0;
     const cls = d>=0 ? 'eloUp' : 'eloDown';
     const sign = d>=0 ? '+' : '';
-    const newElo = PROFILES[p.key] ? Math.round(PROFILES[p.key].elo) : '—';
+    const newElo = mp[p.key] ? Math.round(mp[p.key].elo) : '—';
     return `<tr><td>${p.rank}</td><td>${p.name}</td><td>${newElo}</td><td class="${cls}">${sign}${d.toFixed(1)}</td></tr>`;
   }).join('');
 
@@ -965,13 +1110,97 @@ function endGame(){
   updateTurnInfo();
   renderBotList();
 
+  FOREVER_CONFIG.lastActive = Date.now();
+  persistForeverConfig();
+
   if(document.getElementById('autoMode').checked){
     setTimeout(()=>{
       if(!document.getElementById('autoMode').checked) return;
       document.getElementById('winOverlay').classList.remove('show');
-      startAutoRandom1v1();
-    }, 2500);
+      startForeverLiveGame();
+    }, 2000);
   }
+}
+
+/* ============================ Headless-Simulation (Nachholen verpasster Partien) ============================ */
+function simBotTurn(p){
+  const persona = p.bot || {aggr:0.4, skill:0.8};
+  const {dist} = bfsToGoal(p, p.r, p.c);
+  const moves = legalMoves(p);
+  let placedWall=false;
+  const hasWalls = cfg.unlimitedWalls || p.wallsLeft>0;
+  if(hasWalls && Math.random() < persona.aggr){
+    const rival = findLeadingRival(p);
+    if(rival) placedWall = attemptBlockingWall(p, rival);
+  }
+  if(!placedWall && moves.length){
+    const [nr,nc] = pickBotMove(p, moves, dist);
+    movePlayer(p, nr, nc);
+    if(cfg.doubleStep && !p.finished){
+      const moves2 = legalMoves(p);
+      if(moves2.length){
+        const {dist:dist2} = bfsToGoal(p, p.r, p.c);
+        const [nr2,nc2] = pickBotMove(p, moves2, dist2);
+        movePlayer(p, nr2, nc2);
+      }
+    }
+  }
+}
+function simAdvanceTurn(){
+  if(state.over) return;
+  state.stepsTaken = 0;
+  const prevPos = state.turnIdx % state.turnOrder.length;
+  let tries=0;
+  do{ state.turnIdx++; tries++; }
+  while((currentPlayer().finished || !currentPlayer().alive) && tries<state.turnOrder.length+1);
+  const newPos = state.turnIdx % state.turnOrder.length;
+  if(newPos <= prevPos){
+    state.round++;
+    if(cfg.wallExpire) expireOldWalls();
+    if(cfg.wanderGoal && state.round - state.lastGoalMoveRound >= cfg.wanderGoalRounds) relocateGoal();
+  }
+}
+function simulateFullGame(participants, simCfg){
+  cfg = simCfg;
+  state = buildState(simCfg, participants);
+  let safety = 0;
+  while(!state.over && safety < 20000){
+    safety++;
+    const p = currentPlayer();
+    simBotTurn(p);
+    simAdvanceTurn();
+    checkGameEnd();
+  }
+  return state;
+}
+async function runCatchUpIfNeeded(){
+  if(!FOREVER_CONFIG.enabled) return;
+  const elapsed = Date.now() - (FOREVER_CONFIG.lastActive || Date.now());
+  if(elapsed < 10000) return; // unter 10s weg — nicht der Rede wert
+  const estGames = Math.min(400, Math.max(1, Math.round(elapsed/9000)));
+  showMsg('🌐 Simuliere '+estGames+' verpasste Vollzufalls-Partie(n) nach …');
+  SIM_SILENT = true;
+  let done = 0;
+  await new Promise(resolve=>{
+    function chunk(){
+      const end = Math.min(estGames, done+15);
+      for(; done<end; done++){
+        const rc = randomForeverConfig();
+        const participants = rc.chosenIds.map(id=>{
+          const b = BOT_ROSTER.find(x=>x.id===id);
+          return {key:b.id, name:b.name+' '+b.emoji, human:false, bot:b};
+        });
+        simulateFullGame(participants, foreverCfgFromRandom(rc, 1, 'neon'));
+      }
+      if(done<estGames) setTimeout(chunk, 0); else resolve();
+    }
+    chunk();
+  });
+  SIM_SILENT = false;
+  state = null;
+  FOREVER_CONFIG.lastActive = Date.now();
+  persistForeverConfig();
+  showMsg('✅ '+estGames+' verpasste Partie(n) nachsimuliert — Elo & Statistiken sind aktuell.');
 }
 
 /* ============================ Rendering ============================ */
@@ -1012,6 +1241,7 @@ function drawGoalZone(){
 }
 
 function render(){
+  if(SIM_SILENT) return;
   if(!state) return;
   const theme = cfg.theme;
   const cs = cellSize();
@@ -1204,6 +1434,7 @@ document.addEventListener('keydown',(e)=>{
 
 /* ============================ HUD ============================ */
 function updateTurnInfo(){
+  if(SIM_SILENT) return;
   const el = document.getElementById('turnInfo');
   if(!state || state.over){ el.textContent='Spiel beendet'; return; }
   const p = currentPlayer();
@@ -1211,9 +1442,11 @@ function updateTurnInfo(){
   const turnTxt = p.name+' ist am Zug';
   const roundTxt = (typeof state.round==='number') ? ' · Runde '+(state.round+1) : '';
   const stepTxt = (cfg.doubleStep && p.human && state.stepsTaken>=1) ? ' · 2. Schritt möglich' : '';
-  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + turnTxt + ' · Mauern: '+wallsTxt + roundTxt + stepTxt;
+  const modeTxt = ' · '+modeLabel(state.modeKey);
+  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + turnTxt + ' · Mauern: '+wallsTxt + roundTxt + stepTxt + modeTxt;
 }
 function updateLeaderboard(){
+  if(SIM_SILENT) return;
   const lb = document.getElementById('leaderboard');
   const sorted = [...state.players].sort((a,b)=>{
     if(a.finished && b.finished) return a.rank-b.rank;
@@ -1224,6 +1457,7 @@ function updateLeaderboard(){
 }
 let msgTimer=null;
 function showMsg(text){
+  if(SIM_SILENT) return;
   const el=document.getElementById('msg'); el.textContent=text; el.classList.add('show');
   clearTimeout(msgTimer); msgTimer=setTimeout(()=>el.classList.remove('show'),2600);
 }
@@ -1236,11 +1470,48 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
   };
 }
 
-window.addEventListener('load', ()=>{
+/* ============================ Persistente Weiterführung beim Verlassen ============================ */
+setInterval(()=>{
+  if(FOREVER_CONFIG.enabled){
+    FOREVER_CONFIG.lastActive = Date.now();
+    persistForeverConfig();
+  }
+}, 15000);
+window.addEventListener('beforeunload', ()=>{
+  if(FOREVER_CONFIG.enabled){
+    FOREVER_CONFIG.lastActive = Date.now();
+    try{ window.storage.set('foreverConfig', JSON.stringify(FOREVER_CONFIG), false); }catch(e){}
+  }
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='hidden' && FOREVER_CONFIG.enabled){
+    FOREVER_CONFIG.lastActive = Date.now();
+    persistForeverConfig();
+  }
+});
+
+/* ============================ Boot ============================ */
+window.addEventListener('load', async ()=>{
+  showMsg('Lade gespeicherte Elo-Daten …');
+  await loadAllData();
+  initProfileNameInputs();
   renderBotList();
-  randomSelect(6);
+
+  const on = !!FOREVER_CONFIG.enabled;
+  document.getElementById('autoMode').checked = on;
+  document.getElementById('humanPlays').disabled = on;
+  document.getElementById('startBtn').disabled = on;
+  ['selAll','selNone','sel5','sel10','sel19'].forEach(id=>document.getElementById(id).disabled = on);
+
   resizeCanvas();
-  setTimeout(()=>{ resizeCanvas(); startGame(); }, 50);
+
+  if(on){
+    await runCatchUpIfNeeded();
+    startForeverLiveGame();
+  } else {
+    randomSelect(6);
+    setTimeout(()=>{ resizeCanvas(); startGame(); }, 50);
+  }
 });
 
 })();
