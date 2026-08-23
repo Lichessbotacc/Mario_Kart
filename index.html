@@ -395,6 +395,7 @@ function startGame(){
   render();
   updateLeaderboard();
   updateTurnInfo();
+  startAnimLoop();
   scheduleNextTurn();
 }
 
@@ -765,10 +766,19 @@ function render(){
     }
     ctx.restore();
   });
+}
 
-  if(state && !state.over && state.players.some(p=>p.human)){
-    requestAnimationFrame(()=>{ if(state && !state.over) render(); }); // keep goal pulse animated
+/* Single persistent animation loop (for the pulsing goal border) — started once per
+   game, never re-spawned, so it can't stack up and freeze the tab. */
+let animFrameId = null;
+function startAnimLoop(){
+  if(animFrameId!==null) cancelAnimationFrame(animFrameId);
+  function loop(){
+    if(!state || state.over){ animFrameId=null; return; }
+    render();
+    animFrameId = requestAnimationFrame(loop);
   }
+  animFrameId = requestAnimationFrame(loop);
 }
 
 /* ============================ Input ============================ */
