@@ -152,6 +152,7 @@
   <div id="canvasWrap">
     <canvas id="board" width="900" height="900"></canvas>
     <div id="msg"></div>
+    <div id="goalLabel"></div>
 
     <div class="overlay" id="winOverlay">
       <h2 id="winTitle">🏆 Ergebnis</h2>
@@ -388,6 +389,7 @@ function startGame(){
     theme: THEMES[themeKey]
   };
 
+  if(state && state.timer) clearTimeout(state.timer);
   state = buildState(cfg, participants);
   document.getElementById('winOverlay').classList.remove('show');
   showMsg(humanPlays ? 'Los geht\'s! Du bist der golden umrandete Spieler.' : 'Zuschauer-Modus: Bots spielen gegeneinander.');
@@ -541,7 +543,8 @@ function scheduleNextTurn(){
   clearTimeout(state.timer);
   const p = currentPlayer();
   if(p.human){ render(); return; } // wait for click
-  state.timer = setTimeout(()=>{ botTurn(p); }, cfg.botDelay);
+  const thisGame = state; // guard against a stale callback firing after a new game has started
+  state.timer = setTimeout(()=>{ if(state===thisGame) botTurn(p); }, cfg.botDelay);
 }
 
 function movePlayer(p,r,c){
@@ -652,7 +655,8 @@ function endGame(){
 /* ============================ Rendering ============================ */
 function resizeCanvas(){
   const wrap = document.getElementById('canvasWrap');
-  const s = Math.min(wrap.clientWidth-40, wrap.clientHeight-40, 900);
+  let s = Math.min(wrap.clientWidth-40, wrap.clientHeight-40, 900);
+  if(!s || s<=0 || isNaN(s)) s = 600; // fallback if layout not settled yet
   canvas.width=s; canvas.height=s;
 }
 window.addEventListener('resize', ()=>{ if(state){ resizeCanvas(); render(); }});
@@ -848,11 +852,14 @@ if(!CanvasRenderingContext2D.prototype.roundRect){
   };
 }
 
-/* Initial state: pre-select a handful of varied bots so first start is quick */
+/* Initial state: pre-select a handful of varied bots and start immediately,
+   exactly like the very first version — no click required to see gameplay. */
 window.addEventListener('load', ()=>{
   renderBotList();
   randomSelect(6);
   resizeCanvas();
+  // small delay so the layout has settled and canvasWrap has its real size
+  setTimeout(()=>{ resizeCanvas(); startGame(); }, 50);
 });
 
 })();
