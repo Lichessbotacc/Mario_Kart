@@ -2,794 +2,848 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SKYSHARD — Battle Royale Prototyp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quoridor Arena — Elo &amp; Bot-Roster</title>
 <style>
   :root{
-    --ink:#0b1220;
-    --panel:#101a2c;
-    --panel2:#16233a;
-    --accent:#5be7c4;
-    --accent2:#ff5d73;
-    --gold:#ffcf5c;
-    --text:#eaf2ff;
-    --dim:#8ea3c4;
+    --bg1:#0f0c29; --bg2:#302b63; --bg3:#24243e;
+    --accent:#ffd166; --accent2:#06d6a0; --panel:#1b1830cc;
+    --text:#f4f2ff; --muted:#a9a3c9; --danger:#ef476f;
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
-  html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;
-    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;}
-  #canvasWrap{position:fixed;inset:0;}
-  canvas{display:block;width:100%;height:100%;touch-action:none;}
-
-  /* ---------- HUD ---------- */
-  #hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
-  .hud-el{position:absolute;pointer-events:auto;}
-
-  #topbar{top:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;}
-  .pill{background:rgba(16,26,44,.75);backdrop-filter:blur(6px);border:1px solid rgba(91,231,196,.25);
-    border-radius:999px;padding:6px 16px;color:var(--text);font-size:13px;font-weight:600;letter-spacing:.3px;
-    display:flex;align-items:center;gap:6px;}
-  .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);}
-
-  #healthWrap{bottom:120px;left:16px;width:200px;}
-  #healthBarBg{height:14px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);overflow:hidden;}
-  #healthBar{height:100%;width:100%;background:linear-gradient(90deg,var(--accent2),#ff9a6b);transition:width .25s;}
-  #healthLabel{color:var(--text);font-size:11px;margin-bottom:4px;letter-spacing:1px;opacity:.8;text-transform:uppercase;}
-
-  #matWrap{bottom:96px;left:16px;display:flex;gap:6px;}
-  .matChip{background:rgba(16,26,44,.75);border:1px solid rgba(255,207,92,.3);border-radius:8px;padding:4px 9px;
-    color:var(--gold);font-size:12px;font-weight:700;}
-
-  #crosshair{top:50%;left:50%;transform:translate(-50%,-50%);width:22px;height:22px;pointer-events:none;}
-  #crosshair::before,#crosshair::after{content:'';position:absolute;background:var(--accent);}
-  #crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-1px);}
-  #crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-1px);}
-
-  #zoneInfo{top:14px;right:14px;text-align:right;}
-  #zoneTimer{color:var(--gold);font-size:22px;font-weight:800;letter-spacing:1px;}
-  #zoneSub{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;}
-
-  #killfeed{top:60px;right:14px;width:220px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
-  .killmsg{background:rgba(16,26,44,.7);border-left:3px solid var(--accent2);color:var(--text);font-size:12px;
-    padding:5px 10px;border-radius:6px;opacity:0;animation:kf 4s ease forwards;}
-  @keyframes kf{0%{opacity:0;transform:translateX(20px);}10%{opacity:1;transform:translateX(0);}80%{opacity:1;}100%{opacity:0;}}
-
-  #buildBar{bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:10px;}
-  .buildBtn{width:56px;height:56px;border-radius:14px;background:rgba(16,26,44,.8);border:2px solid rgba(255,255,255,.12);
-    display:flex;align-items:center;justify-content:center;color:var(--text);font-size:22px;position:relative;}
-  .buildBtn.active{border-color:var(--accent);box-shadow:0 0 14px rgba(91,231,196,.5);}
-  .buildBtn .key{position:absolute;bottom:2px;right:5px;font-size:9px;color:var(--dim);}
-
-  #fireBtn{bottom:100px;right:24px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(255,93,115,.35),rgba(255,93,115,.1));
-    border:2px solid rgba(255,93,115,.6);color:var(--text);font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;text-align:center;}
-  #jumpBtn{bottom:190px;right:24px;width:60px;height:60px;border-radius:50%;background:rgba(91,231,196,.15);
-    border:2px solid rgba(91,231,196,.5);color:var(--text);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
-
-  #joyZone{bottom:16px;left:16px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);}
-  #joyStick{position:absolute;width:56px;height:56px;border-radius:50%;background:rgba(91,231,196,.35);border:1px solid rgba(91,231,196,.7);
-    top:37px;left:37px;pointer-events:none;}
-
-  #startScreen,#endScreen{position:fixed;inset:0;z-index:50;background:radial-gradient(ellipse at 50% 20%,#182645,#050810 70%);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text);text-align:center;padding:20px;}
-  #startScreen h1,#endScreen h1{font-size:clamp(38px,9vw,72px);margin:0;letter-spacing:4px;font-weight:900;
-    background:linear-gradient(90deg,var(--accent),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
-  #startScreen p,#endScreen p{color:var(--dim);max-width:480px;line-height:1.6;font-size:14px;margin-top:10px;}
-  .bigBtn{margin-top:26px;padding:16px 44px;border-radius:999px;background:linear-gradient(90deg,var(--accent),#3fd6b0);
-    border:none;color:#04231c;font-weight:900;font-size:16px;letter-spacing:1px;cursor:pointer;}
-  #ctrlHint{margin-top:30px;display:flex;gap:22px;flex-wrap:wrap;justify-content:center;}
-  .hintCard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--dim);}
-  #loadBar{width:260px;height:6px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-top:22px;}
-  #loadFill{height:100%;width:0%;background:var(--accent);transition:width .2s;}
-
-  .hidden{display:none !important;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    background:radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1) 60%),
+               radial-gradient(circle at 80% 80%, var(--bg3), var(--bg1) 60%);
+    color:var(--text); min-height:100vh; display:flex; overflow:hidden;
+  }
+  #sidebar{
+    width:340px; min-width:300px; max-width:360px;
+    background:var(--panel); backdrop-filter:blur(10px);
+    padding:18px; overflow-y:auto; border-right:1px solid #ffffff22; z-index:5;
+  }
+  #sidebar h1{ font-size:21px; margin:0 0 2px 0;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #sidebar .sub{color:var(--muted); font-size:11.5px; margin-bottom:14px;}
+  .group{margin-bottom:14px; padding:10px 12px; background:#ffffff0d; border-radius:10px; border:1px solid #ffffff14;}
+  .group h3{margin:0 0 8px 0; font-size:12.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent2); display:flex; justify-content:space-between; align-items:center;}
+  .row{display:flex; align-items:center; justify-content:space-between; margin:6px 0; gap:8px;}
+  .row label{font-size:13px; color:var(--text); flex:1;}
+  .row output{font-size:13px; color:var(--accent); min-width:36px; text-align:right;}
+  input[type=range]{flex:2; accent-color:var(--accent2);}
+  select{ background:#ffffff14; color:var(--text); border:1px solid #ffffff2a; border-radius:6px; padding:5px 8px; font-size:13px; flex:2;}
+  button{ cursor:pointer; border:none; border-radius:8px; font-weight:600; font-size:12.5px; padding:8px 12px; transition:transform .12s ease, box-shadow .12s ease;}
+  button:active{transform:scale(.96);}
+  .btnPrimary{ background:linear-gradient(90deg,var(--accent2),#1fb6ff); color:#0a0a1a; box-shadow:0 4px 14px #06d6a055;}
+  .btnGhost{ background:#ffffff14; color:var(--text); border:1px solid #ffffff2a;}
+  .btnGhost.active{ background:linear-gradient(90deg,var(--accent),#ff9a3c); color:#0a0a1a;}
+  #startBtn{width:100%; margin-top:4px;}
+  .miniRow{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
+  .miniRow button{flex:1; min-width:60px; padding:6px 8px; font-size:11.5px;}
+  #botList{max-height:260px; overflow-y:auto; margin-top:6px; border-radius:8px;}
+  .botItem{ display:flex; align-items:center; gap:8px; padding:6px 6px; border-radius:6px; cursor:pointer; font-size:12.5px;}
+  .botItem:hover{background:#ffffff10;}
+  .botItem input{accent-color:var(--accent2);}
+  .botAvatar{width:16px; height:16px; border-radius:50%; flex-shrink:0; box-shadow:0 0 6px currentColor;}
+  .botMeta{flex:1; display:flex; flex-direction:column; line-height:1.25;}
+  .botMeta b{font-size:12.5px;}
+  .botMeta span{font-size:10.5px; color:var(--muted);}
+  .botElo{font-size:11px; color:var(--accent); font-weight:700;}
+  #legend{font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:10px;}
+  #main{flex:1; position:relative; display:flex; flex-direction:column;}
+  #topbar{ display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:#00000033; z-index:4; flex-wrap:wrap; gap:8px;}
+  #turnInfo{font-size:15px; font-weight:600;}
+  #turnInfo .dot{display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px; vertical-align:middle; box-shadow:0 0 10px 2px currentColor;}
+  #leaderboard{display:flex; gap:6px; flex-wrap:wrap; max-width:60%; justify-content:flex-end;}
+  .lb-chip{ display:flex; align-items:center; gap:5px; background:#ffffff14; padding:3px 8px; border-radius:20px; font-size:11px;}
+  .lb-chip .swatch{width:9px; height:9px; border-radius:50%;}
+  #canvasWrap{flex:1; display:flex; align-items:center; justify-content:center; position:relative;}
+  canvas{background:#12102a; border-radius:16px; box-shadow:0 20px 60px #00000066, inset 0 0 0 1px #ffffff1a;}
+  #msg{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:#000000aa; padding:8px 18px; border-radius:20px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .3s ease;}
+  #msg.show{opacity:1;}
+  #goalLabel{position:absolute; font-size:12px; font-weight:700; color:var(--accent); pointer-events:none; text-shadow:0 0 8px #000; letter-spacing:.03em;}
+  .overlay{ position:absolute; inset:0; background:#000000cc; display:none; align-items:center; justify-content:center; flex-direction:column; z-index:20; backdrop-filter:blur(4px); padding:20px;}
+  .overlay.show{display:flex;}
+  .overlay h2{font-size:32px; margin:0 0 10px 0; color:var(--accent); text-align:center;}
+  .overlay p{color:var(--muted); margin-bottom:16px; text-align:center;}
+  #resultTable{width:100%; max-width:560px; max-height:40vh; overflow-y:auto; border-collapse:collapse; margin-bottom:18px; font-size:13px;}
+  #resultTable th, #resultTable td{padding:6px 10px; text-align:left; border-bottom:1px solid #ffffff1a;}
+  #resultTable th{color:var(--accent2); font-size:11px; text-transform:uppercase;}
+  .eloUp{color:#06d6a0; font-weight:700;}
+  .eloDown{color:#ef476f; font-weight:700;}
+  #profileOverlay table{width:100%; max-width:700px; border-collapse:collapse; font-size:13px; margin-bottom:16px;}
+  #profileOverlay th, #profileOverlay td{padding:7px 10px; text-align:left; border-bottom:1px solid #ffffff1a;}
+  #profileOverlay th{color:var(--accent2); font-size:11px; text-transform:uppercase; cursor:pointer;}
+  #profileTableWrap{max-height:60vh; overflow-y:auto; width:100%; max-width:700px;}
+  @media (max-width:820px){
+    body{flex-direction:column;}
+    #sidebar{width:100%; max-width:none; height:44vh; order:2; border-right:none; border-top:1px solid #ffffff22;}
+    #main{order:1; height:56vh;}
+  }
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:#ffffff33; border-radius:4px;}
 </style>
 </head>
 <body>
 
-<div id="canvasWrap"></div>
+<div id="sidebar">
+  <h1>Quoridor Arena</h1>
+  <div class="sub">Elo-Ranking · eigenes Bot-Roster · wähle deine Gegner oder lass Bots gegeneinander spielen</div>
 
-<div id="startScreen">
-  <div class="pill" style="margin-bottom:18px;"><span class="dot"></span>PROTOTYP — EIGENSTÄNDIGES SPIEL</div>
-  <h1>SKYSHARD</h1>
-  <p>Ein eigenständiger Battle-Royale-Prototyp: baue Deckung, sammle Loot, überlebe die schrumpfende Sturmzone gegen KI-Gegner. Läuft im Browser, auch auf dem iPad.</p>
-  <div id="loadBar"><div id="loadFill"></div></div>
-  <button class="bigBtn hidden" id="playBtn">DROP STARTEN</button>
-  <div id="ctrlHint">
-    <div class="hintCard">🖥️ Desktop: WASD + Maus, Leertaste = Springen, Linksklick = Schießen, 1/2/3 = Bauen</div>
-    <div class="hintCard">📱 iPad: linker Joystick = Bewegen, rechte Seite ziehen = Umschauen, Buttons = Bauen/Schießen/Springen</div>
+  <div class="group">
+    <h3>Modus</h3>
+    <div class="row"><label for="humanPlays">Ich spiele mit</label>
+      <input type="checkbox" id="humanPlays" checked style="flex:0; width:18px; height:18px;">
+    </div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Aus = reines Bot-vs-Bot Match zum Zuschauen (Custom Matchmaking)</div>
+  </div>
+
+  <div class="group">
+    <h3>Gegner wählen <span id="selCount" style="color:var(--accent);">0</span></h3>
+    <div class="miniRow">
+      <button class="btnGhost" id="selAll">Alle</button>
+      <button class="btnGhost" id="selNone">Keine</button>
+      <button class="btnGhost" id="sel5">Zufall 5</button>
+      <button class="btnGhost" id="sel10">Zufall 10</button>
+      <button class="btnGhost" id="sel19">Zufall 19</button>
+    </div>
+    <div id="botList"></div>
+  </div>
+
+  <div class="group">
+    <h3>Spielfeld</h3>
+    <div class="row"><label for="boardSize">Feldgröße</label><input type="range" id="boardSize" min="9" max="27" step="2" value="13"><output id="boardSizeOut">13×13</output></div>
+    <div class="row"><label for="wallCount">Mauern pro Spieler</label><input type="range" id="wallCount" min="0" max="15" value="6"><output id="wallCountOut">6</output></div>
+    <div class="row"><label for="botDelay">Spielgeschwindigkeit</label><input type="range" id="botDelay" min="50" max="800" value="220"><output id="botDelayOut">220ms</output></div>
+  </div>
+
+  <div class="group">
+    <h3>Look</h3>
+    <div class="row"><label for="theme">Theme</label>
+      <select id="theme">
+        <option value="neon">Neon Nacht</option>
+        <option value="sunset">Sunset</option>
+        <option value="forest">Wald</option>
+        <option value="mono">Monochrom</option>
+      </select>
+    </div>
+  </div>
+
+  <button id="startBtn" class="btnPrimary" style="width:100%;">🎮 Match starten</button>
+  <button id="wallModeBtn" class="btnGhost" style="width:100%; margin-top:8px;">🧱 Mauer-Modus: AUS</button>
+  <button id="profileBtn" class="btnGhost" style="width:100%; margin-top:8px;">📊 Profile &amp; Elo</button>
+
+  <div id="legend">
+    <b>Steuerung:</b><br>
+    • Grün markiertes Feld anklicken → dorthin ziehen.<br>
+    • Mauer-Modus an → Klick auf eine Feldkante platziert eine Mauer.<br>
+    • Du bist der golden umrandete Kreis. Dein Ziel ist die golden gestrichelte Kante — mit "DEIN ZIEL" beschriftet.<br>
+    • Jeder Zug passiert sofort, nacheinander — kein gleichzeitiges Bewegen.
   </div>
 </div>
 
-<div id="endScreen" class="hidden">
-  <h1 id="endTitle">GESCHAFFT</h1>
-  <p id="endText"></p>
-  <button class="bigBtn" id="restartBtn">NOCHMAL SPIELEN</button>
+<div id="main">
+  <div id="topbar">
+    <div id="turnInfo">Bereit</div>
+    <div id="leaderboard"></div>
+  </div>
+  <div id="canvasWrap">
+    <canvas id="board" width="900" height="900"></canvas>
+    <div id="msg"></div>
+
+    <div class="overlay" id="winOverlay">
+      <h2 id="winTitle">🏆 Ergebnis</h2>
+      <p id="winSub"></p>
+      <table id="resultTable">
+        <thead><tr><th>#</th><th>Spieler</th><th>Elo</th><th>Δ</th></tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+      <div class="miniRow" style="max-width:400px;">
+        <button id="playAgainBtn" class="btnPrimary">Nochmal spielen</button>
+        <button id="closeResultBtn" class="btnGhost">Schließen</button>
+      </div>
+    </div>
+
+    <div class="overlay" id="profileOverlay">
+      <h2>📊 Profile &amp; Elo-Rangliste</h2>
+      <p>Wie bei einer Schach-Plattform: jedes Match verändert die Elo aller Teilnehmer.</p>
+      <div id="profileTableWrap">
+        <table>
+          <thead><tr><th>Rang</th><th>Name</th><th>Elo</th><th>Spiele</th><th>Siege</th><th>Siegquote</th><th>Ø Platz</th><th>Top3</th></tr></thead>
+          <tbody id="profileBody"></tbody>
+        </table>
+      </div>
+      <div class="miniRow" style="max-width:400px;">
+        <button id="resetProfilesBtn" class="btnGhost" style="border-color:#ef476f66; color:#ef476f;">Alle Statistiken zurücksetzen</button>
+        <button id="closeProfileBtn" class="btnPrimary">Schließen</button>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div id="hud" class="hidden">
-  <div class="hud-el" id="topbar">
-    <div class="pill"><span class="dot"></span><span id="playersLeft">— Spieler übrig</span></div>
-  </div>
-
-  <div class="hud-el" id="zoneInfo">
-    <div id="zoneSub">Sturm zieht sich zusammen</div>
-    <div id="zoneTimer">--</div>
-  </div>
-
-  <div class="hud-el" id="killfeed"></div>
-
-  <div class="hud-el" id="crosshair"></div>
-
-  <div class="hud-el" id="healthWrap">
-    <div id="healthLabel">Leben</div>
-    <div id="healthBarBg"><div id="healthBar"></div></div>
-  </div>
-
-  <div class="hud-el" id="matWrap">
-    <div class="matChip">🪵 <span id="matWood">100</span></div>
-  </div>
-
-  <div class="hud-el" id="buildBar">
-    <div class="buildBtn" data-b="wall"><span>▮</span><span class="key">1</span></div>
-    <div class="buildBtn" data-b="floor"><span>▬</span><span class="key">2</span></div>
-    <div class="buildBtn" data-b="ramp"><span>◢</span><span class="key">3</span></div>
-  </div>
-
-  <div class="hud-el" id="joyZone"><div id="joyStick"></div></div>
-  <div class="hud-el" id="jumpBtn">SPRUNG</div>
-  <div class="hud-el" id="fireBtn">FEUER</div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
 "use strict";
 
-/* ============================================================
-   SKYSHARD — eigenständiger Battle-Royale-Prototyp
-   Kein Fortnite-Content: eigener Low-Poly-Stil, eigene Namen,
-   eigene Farben/Formen. Reine Genre-Inspiration.
-============================================================ */
-
-const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-
-/* ---------------- Basic scene setup ---------------- */
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8fd3f4);
-scene.fog = new THREE.Fog(0x8fd3f4, 40, 260);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-document.getElementById('canvasWrap').appendChild(renderer.domElement);
-
-window.addEventListener('resize', ()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-/* ---------------- Lighting ---------------- */
-const hemi = new THREE.HemisphereLight(0xffffff, 0x6d8f5c, 0.9);
-scene.add(hemi);
-const sun = new THREE.DirectionalLight(0xfff3d6, 1.1);
-sun.position.set(60,90,40);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left=-120; sun.shadow.camera.right=120;
-sun.shadow.camera.top=120; sun.shadow.camera.bottom=-120;
-sun.shadow.camera.far=300;
-scene.add(sun);
-
-/* ---------------- World: island terrain ---------------- */
-const WORLD_SIZE = 220;
-const groundGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 60, 60);
-groundGeo.rotateX(-Math.PI/2);
-// gentle procedural hills
-const posAttr = groundGeo.attributes.position;
-for(let i=0;i<posAttr.count;i++){
-  const x = posAttr.getX(i), z = posAttr.getZ(i);
-  const h = Math.sin(x*0.05)*Math.cos(z*0.05)*3 + Math.sin(x*0.11+z*0.07)*1.4;
-  posAttr.setY(i, h);
-}
-groundGeo.computeVertexNormals();
-const groundMat = new THREE.MeshStandardMaterial({color:0x6fbf6b, flatShading:true, roughness:1});
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.receiveShadow = true;
-scene.add(ground);
-
-function terrainHeightAt(x,z){
-  const h = Math.sin(x*0.05)*Math.cos(z*0.05)*3 + Math.sin(x*0.11+z*0.07)*1.4;
-  return h;
-}
-
-// water skirt
-const waterGeo = new THREE.PlaneGeometry(WORLD_SIZE*4, WORLD_SIZE*4);
-waterGeo.rotateX(-Math.PI/2);
-const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({color:0x2f7ec9, transparent:true, opacity:.85}));
-water.position.y = -2.4;
-scene.add(water);
-
-// scattered low-poly trees & rocks (own art style: simple cones/spheres)
-const treeGroup = new THREE.Group();
-function makeTree(x,z){
-  const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2,6), new THREE.MeshStandardMaterial({color:0x8a5a3b, flatShading:true}));
-  trunk.position.y = 1;
-  trunk.castShadow = true;
-  const leaves = new THREE.Mesh(new THREE.ConeGeometry(1.6,3.2,7), new THREE.MeshStandardMaterial({color:0x2f9e52, flatShading:true}));
-  leaves.position.y = 3.2;
-  leaves.castShadow = true;
-  g.add(trunk, leaves);
-  const y = terrainHeightAt(x,z);
-  g.position.set(x,y,z);
-  return g;
-}
-for(let i=0;i<70;i++){
-  const x = (Math.random()-0.5)*WORLD_SIZE*0.9;
-  const z = (Math.random()-0.5)*WORLD_SIZE*0.9;
-  if(Math.abs(x)<8 && Math.abs(z)<8) continue;
-  treeGroup.add(makeTree(x,z));
-}
-scene.add(treeGroup);
-
-// simple hut structures (own design, not fortnite POIs) - just landmark shapes
-function makeHut(x,z,color){
-  const g = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.BoxGeometry(6,3,6), new THREE.MeshStandardMaterial({color:color, flatShading:true}));
-  base.position.y = 1.5;
-  base.castShadow = true; base.receiveShadow = true;
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(4.8,2.6,4), new THREE.MeshStandardMaterial({color:0x8a3b3b, flatShading:true}));
-  roof.rotation.y = Math.PI/4;
-  roof.position.y = 4.3;
-  roof.castShadow = true;
-  g.add(base, roof);
-  const y = terrainHeightAt(x,z);
-  g.position.set(x,y,z);
-  return g;
-}
-const landmarks = [
-  makeHut(30,20,0xd9b87c), makeHut(-40,10,0xc7a568), makeHut(15,-45,0xd9b87c),
-  makeHut(-25,-30,0xc7a568), makeHut(50,-15,0xd9b87c)
-];
-landmarks.forEach(h=>scene.add(h));
-
-/* ---------------- Collidable colliders (simple boxes) ---------------- */
-const staticColliders = []; // {box: THREE.Box3}
-landmarks.forEach(h=>{
-  const box = new THREE.Box3().setFromObject(h);
-  staticColliders.push(box);
-});
-
-/* ---------------- Player ---------------- */
-const player = {
-  pos: new THREE.Vector3(0, 8, 0),
-  vel: new THREE.Vector3(),
-  yaw: 0, pitch: 0,
-  onGround: false,
-  health: 100,
-  wood: 100,
-  alive: true,
-  speed: 8,
-  jumpPower: 8.5,
+/* ============================ Themes ============================ */
+const THEMES = {
+  neon:   { bg:'#12102a', grid:'#2a2650', wall:'#ffd166', highlight:'#06d6a0', palette:['#ff5d8f','#06d6a0','#ffd166','#4cc9f0','#c77dff','#ff9a3c','#7cf07c','#ff6b6b','#a0e7e5','#f4d35e','#ee6c4d','#83c5be','#e0aaff','#90e0ef','#f9c74f','#f28482','#8ecae6','#ffb4a2','#b9fbc0','#fdffb6'] },
+  sunset: { bg:'#1a0f1f', grid:'#3a1f33', wall:'#ffb703', highlight:'#fb8500', palette:['#ff006e','#fb5607','#ffbe0b','#8338ec','#3a86ff','#ff9f1c','#ef476f','#f4a261','#e76f51','#2a9d8f','#e9c46a','#d62828','#f77f00','#fcbf49','#6a4c93','#c9184a','#ff8fab','#4361ee','#ffafcc','#a2d2ff'] },
+  forest: { bg:'#0d1b12', grid:'#1f3a29', wall:'#e9c46a', highlight:'#95d5b2', palette:['#40916c','#74c69d','#b5e48c','#52b788','#2d6a4f','#d9ed92','#99d98c','#168aad','#34a0a4','#f4a261','#e9c46a','#606c38','#588157','#a3b18a','#dda15e','#bc6c25','#84a98c','#354f52','#cad2c5','#52796f'] },
+  mono:   { bg:'#141414', grid:'#2b2b2b', wall:'#f5f5f5', highlight:'#00e5ff', palette:['#ffffff','#cfcfcf','#00e5ff','#ff5252','#ffca28','#66bb6a','#ab47bc','#ec407a','#7e57c2','#26a69a','#8d6e63','#78909c','#d4e157','#ffa726','#5c6bc0','#26c6da','#9ccc65','#ef5350','#ffee58','#42a5f5'] }
 };
-const GRAVITY = -22;
-const PLAYER_RADIUS = 0.5;
-const PLAYER_HEIGHT = 1.7;
 
-/* ---------------- Build system ---------------- */
-const buildPieces = []; // {mesh, box}
-let currentBuildType = 'wall';
-const buildMat = new THREE.MeshStandardMaterial({color:0xe8d9a8, flatShading:true, roughness:.9});
-const buildMatEdge = new THREE.MeshStandardMaterial({color:0xb89a5c, flatShading:true});
+/* ============================ Bot-Roster (feste Persönlichkeiten) ============================ */
+// aggressiveness: wie oft versucht der Bot, Mauern gezielt gegen den Führenden zu setzen
+// skill: Wahrscheinlichkeit, den kürzesten BFS-Weg zu ziehen statt eines zufälligen legalen Zugs
+const BOT_ROSTER = [
+  {id:'b_falke',    name:'Falke',        emoji:'🦅', style:'Rusher, kaum Mauern',     aggr:0.06, skill:0.95},
+  {id:'b_dachs',    name:'Der Dachs',    emoji:'🦡', style:'Defensiv, viele Mauern',  aggr:0.75, skill:0.65},
+  {id:'b_chaot',    name:'Chaot',        emoji:'🌀', style:'Unberechenbar',           aggr:0.30, skill:0.25},
+  {id:'b_professor',name:'Professor',    emoji:'🎓', style:'Fast perfekt, ruhig',     aggr:0.40, skill:0.97},
+  {id:'b_wall',     name:'Mauerbauer',   emoji:'🧱', style:'Blockiert extrem viel',   aggr:0.90, skill:0.55},
+  {id:'b_flitzer',  name:'Flitzer',      emoji:'⚡', style:'Ignoriert Mauern fast',   aggr:0.03, skill:0.80},
+  {id:'b_taktik',   name:'Taktiker',     emoji:'♟️', style:'Ausgewogen & clever',     aggr:0.45, skill:0.85},
+  {id:'b_schurke',  name:'Schurke',      emoji:'😈', style:'Fies, blockiert Führende',aggr:0.85, skill:0.70},
+  {id:'b_neuling',  name:'Neuling',      emoji:'🐣', style:'Spielt noch unsicher',    aggr:0.15, skill:0.35},
+  {id:'b_veteran',  name:'Veteran',      emoji:'🎖️', style:'Erfahren, solide',        aggr:0.55, skill:0.88},
+  {id:'b_schatten', name:'Schatten',     emoji:'🥷', style:'Schnell & sparsam',       aggr:0.20, skill:0.75},
+  {id:'b_baumeis',  name:'Baumeister',   emoji:'🏗️', style:'Baut früh eine Festung',  aggr:0.80, skill:0.60},
+  {id:'b_glueck',   name:'Glückspilz',   emoji:'🍀', style:'Sehr zufällig',           aggr:0.20, skill:0.20},
+  {id:'b_stratege', name:'Stratege',     emoji:'🧠', style:'Plant weit voraus',       aggr:0.50, skill:0.93},
+  {id:'b_rookie',   name:'Rookie',       emoji:'🆕', style:'Lernt noch',              aggr:0.10, skill:0.40},
+  {id:'b_wirbel',   name:'Wirbelwind',   emoji:'🌪️', style:'Aggressiv & schnell',     aggr:0.65, skill:0.78},
+  {id:'b_eisern',   name:'Der Eiserne',  emoji:'🛡️', style:'Extrem defensiv',         aggr:0.95, skill:0.72},
+  {id:'b_komet',    name:'Komet',        emoji:'☄️', style:'Reine Geschwindigkeit',   aggr:0.02, skill:0.90},
+  {id:'b_meister',  name:'Meister',      emoji:'👑', style:'Der stärkste Bot',        aggr:0.60, skill:0.98},
+];
 
-function ghostMeshFor(type){
-  let geo;
-  if(type==='wall') geo = new THREE.BoxGeometry(4,4,0.35);
-  else if(type==='floor') geo = new THREE.BoxGeometry(4,0.35,4);
-  else geo = new THREE.BoxGeometry(4,0.35,5.6);
-  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x5be7c4, transparent:true, opacity:.45}));
-  return m;
+/* ============================ Profile / Elo (localStorage) ============================ */
+const STORAGE_KEY = 'quoridorProfiles_v1';
+function loadProfiles(){
+  let raw=null;
+  try{ raw = localStorage.getItem(STORAGE_KEY); }catch(e){}
+  let data = raw ? JSON.parse(raw) : {};
+  if(!data['human']) data['human'] = freshProfile('Du');
+  BOT_ROSTER.forEach(b=>{ if(!data[b.id]) data[b.id] = freshProfile(b.name); });
+  return data;
 }
-let ghost = ghostMeshFor('wall');
-ghost.visible = false;
-scene.add(ghost);
-
-function placeBuild(){
-  if(player.wood < 10) return;
-  if(!ghost.visible) return;
-  const geo = currentBuildType==='wall' ? new THREE.BoxGeometry(4,4,0.35)
-            : currentBuildType==='floor' ? new THREE.BoxGeometry(4,0.35,4)
-            : new THREE.BoxGeometry(4,0.35,5.6);
-  const mesh = new THREE.Mesh(geo, buildMat.clone());
-  mesh.position.copy(ghost.position);
-  mesh.rotation.copy(ghost.rotation);
-  mesh.castShadow = true; mesh.receiveShadow = true;
-  scene.add(mesh);
-  const box = new THREE.Box3().setFromObject(mesh);
-  buildPieces.push({mesh, box});
-  staticColliders.push(box);
-  player.wood -= 10;
-  document.getElementById('matWood').textContent = player.wood;
+function saveProfiles(data){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
 }
-
-function updateGhost(){
-  const dir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0, player.yaw, 0));
-  const base = player.pos.clone().add(dir.clone().multiplyScalar(4.5));
-  base.y = player.pos.y - 0.4;
-  ghost.position.copy(base);
-  ghost.rotation.set(0, player.yaw, 0);
-  if(currentBuildType==='floor'){ ghost.rotation.x=0; ghost.position.y = player.pos.y - 0.9;}
-  if(currentBuildType==='ramp'){ ghost.rotation.x = -0.5; }
-  ghost.geometry.dispose();
-  ghost.geometry = ghostMeshFor(currentBuildType).geometry;
-  ghost.visible = player.alive;
+function freshProfile(name){
+  return { name, elo:1000, games:0, wins:0, top3:0, rankSum:0 };
 }
+let PROFILES = loadProfiles();
 
-/* ---------------- Bots ---------------- */
-const BOT_COUNT = 11;
-const bots = [];
-const botColors = [0xff5d73,0xffcf5c,0x5be7c4,0xb27bff,0xffa45c,0x7ecbff,0xff8fb1,0xa4e17c,0xffe08a,0x8fd3f4,0xd1a5ff];
-
-function makeBotMesh(color){
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.5,1.0,4,8), new THREE.MeshStandardMaterial({color, flatShading:true}));
-  body.position.y = 1.1;
-  body.castShadow = true;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.4,10,10), new THREE.MeshStandardMaterial({color:0xffe0c2, flatShading:true}));
-  head.position.y = 2.0;
-  head.castShadow = true;
-  g.add(body, head);
-  return g;
+function computeEloUpdates(participants /* [{key, rank}] sorted meaning rank 1..n */){
+  const n = participants.length;
+  if(n<2) return {};
+  const K = 24;
+  const eloOf = key => PROFILES[key] ? PROFILES[key].elo : 1000;
+  const deltas = {};
+  participants.forEach(p=> deltas[p.key]=0);
+  for(let i=0;i<n;i++){
+    for(let j=0;j<n;j++){
+      if(i===j) continue;
+      const pi = participants[i], pj = participants[j];
+      const Sij = pi.rank < pj.rank ? 1 : (pi.rank > pj.rank ? 0 : 0.5);
+      const Eij = 1/(1+Math.pow(10, (eloOf(pj.key)-eloOf(pi.key))/400));
+      deltas[pi.key] += (K/(n-1)) * (Sij - Eij);
+    }
+  }
+  return deltas;
 }
 
-function spawnBot(i){
-  const ang = (i/BOT_COUNT)*Math.PI*2;
-  const r = 60 + Math.random()*40;
-  const x = Math.cos(ang)*r, z = Math.sin(ang)*r;
-  const mesh = makeBotMesh(botColors[i%botColors.length]);
-  mesh.position.set(x, terrainHeightAt(x,z)+1, z);
-  scene.add(mesh);
+function applyMatchResults(finishedList){
+  // finishedList: array of {key,name,rank} rank 1 = winner ... n = last
+  const deltas = computeEloUpdates(finishedList);
+  finishedList.forEach(p=>{
+    const prof = PROFILES[p.key] || (PROFILES[p.key]=freshProfile(p.name));
+    prof.name = p.name;
+    prof.games++;
+    if(p.rank===1) prof.wins++;
+    if(p.rank<=3) prof.top3++;
+    prof.rankSum += p.rank;
+    prof.elo = Math.round((prof.elo + deltas[p.key]) * 10)/10;
+  });
+  saveProfiles(PROFILES);
+  return deltas;
+}
+
+/* ============================ UI: Bot list ============================ */
+const botListEl = document.getElementById('botList');
+const selectedBots = new Set();
+function renderBotList(){
+  const theme = THEMES[document.getElementById('theme').value];
+  botListEl.innerHTML = BOT_ROSTER.map((b,i)=>{
+    const prof = PROFILES[b.id];
+    const color = theme.palette[i % theme.palette.length];
+    const checked = selectedBots.has(b.id) ? 'checked' : '';
+    return `<label class="botItem">
+      <input type="checkbox" data-id="${b.id}" ${checked}>
+      <span class="botAvatar" style="background:${color}; color:${color};"></span>
+      <span class="botMeta"><b>${b.emoji} ${b.name}</b><span>${b.style}</span></span>
+      <span class="botElo">${Math.round(prof.elo)}</span>
+    </label>`;
+  }).join('');
+  botListEl.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      if(cb.checked) selectedBots.add(cb.dataset.id); else selectedBots.delete(cb.dataset.id);
+      updateSelCount();
+    });
+  });
+  updateSelCount();
+}
+function updateSelCount(){ document.getElementById('selCount').textContent = selectedBots.size; }
+document.getElementById('selAll').addEventListener('click', ()=>{ BOT_ROSTER.forEach(b=>selectedBots.add(b.id)); renderBotList(); });
+document.getElementById('selNone').addEventListener('click', ()=>{ selectedBots.clear(); renderBotList(); });
+function randomSelect(n){
+  selectedBots.clear();
+  const pool = [...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,n);
+  pool.forEach(b=>selectedBots.add(b.id));
+  renderBotList();
+}
+document.getElementById('sel5').addEventListener('click', ()=>randomSelect(5));
+document.getElementById('sel10').addEventListener('click', ()=>randomSelect(10));
+document.getElementById('sel19').addEventListener('click', ()=>randomSelect(19));
+document.getElementById('theme').addEventListener('change', renderBotList);
+
+/* ============================ Range bindings ============================ */
+function bindRange(id, outId, fmt){
+  const el = document.getElementById(id), out = document.getElementById(outId);
+  const upd = () => out.textContent = fmt ? fmt(el.value) : el.value;
+  el.addEventListener('input', upd); upd();
+}
+bindRange('boardSize','boardSizeOut', v => v+'×'+v);
+bindRange('wallCount','wallCountOut');
+bindRange('botDelay','botDelayOut', v => v+'ms');
+
+/* ============================ Game state ============================ */
+let cfg = {};
+let state = null;
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('playAgainBtn').addEventListener('click', ()=>{ document.getElementById('winOverlay').classList.remove('show'); startGame(); });
+document.getElementById('closeResultBtn').addEventListener('click', ()=> document.getElementById('winOverlay').classList.remove('show'));
+document.getElementById('profileBtn').addEventListener('click', openProfileOverlay);
+document.getElementById('closeProfileBtn').addEventListener('click', ()=> document.getElementById('profileOverlay').classList.remove('show'));
+document.getElementById('resetProfilesBtn').addEventListener('click', ()=>{
+  if(confirm('Wirklich alle Elo-Werte und Statistiken zurücksetzen?')){
+    PROFILES = {}; PROFILES['human']=freshProfile('Du');
+    BOT_ROSTER.forEach(b=>PROFILES[b.id]=freshProfile(b.name));
+    saveProfiles(PROFILES);
+    renderBotList(); openProfileOverlay();
+  }
+});
+document.getElementById('wallModeBtn').addEventListener('click', ()=>{
+  if(!state || state.over) return;
+  state.wallMode = !state.wallMode;
+  const btn = document.getElementById('wallModeBtn');
+  btn.classList.toggle('active', state.wallMode);
+  btn.textContent = '🧱 Mauer-Modus: ' + (state.wallMode ? 'AN' : 'AUS');
+  render();
+});
+
+function openProfileOverlay(){
+  const rows = Object.keys(PROFILES).map(key=>({key, ...PROFILES[key]}))
+    .sort((a,b)=>b.elo-a.elo);
+  const body = document.getElementById('profileBody');
+  body.innerHTML = rows.map((p,i)=>{
+    const winrate = p.games? Math.round(100*p.wins/p.games)+'%' : '—';
+    const avgRank = p.games? (p.rankSum/p.games).toFixed(1) : '—';
+    const isHuman = p.key==='human';
+    return `<tr style="${isHuman?'color:var(--accent); font-weight:700;':''}">
+      <td>${i+1}</td><td>${isHuman?'👤 ':''}${p.name}</td><td>${Math.round(p.elo)}</td>
+      <td>${p.games}</td><td>${p.wins}</td><td>${winrate}</td><td>${avgRank}</td><td>${p.top3}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('profileOverlay').classList.add('show');
+}
+
+/* ============================ Setup ============================ */
+function startGame(){
+  const humanPlays = document.getElementById('humanPlays').checked;
+  const chosenBots = BOT_ROSTER.filter(b=>selectedBots.has(b.id));
+  const participants = [];
+  if(humanPlays) participants.push({key:'human', name:'Du', human:true, bot:null});
+  chosenBots.forEach(b=> participants.push({key:b.id, name:b.name+' '+b.emoji, human:false, bot:b}));
+
+  if(participants.length<2){
+    showMsg('Bitte mindestens 2 Teilnehmer wählen (du + mind. 1 Bot, oder mind. 2 Bots).');
+    return;
+  }
+
+  const size = +document.getElementById('boardSize').value;
+  const walls = +document.getElementById('wallCount').value;
+  const themeKey = document.getElementById('theme').value;
+
+  cfg = {
+    size, wallsPerPlayer: walls,
+    botDelay: +document.getElementById('botDelay').value,
+    theme: THEMES[themeKey]
+  };
+
+  state = buildState(cfg, participants);
+  document.getElementById('winOverlay').classList.remove('show');
+  showMsg(humanPlays ? 'Los geht\'s! Du bist der golden umrandete Spieler.' : 'Zuschauer-Modus: Bots spielen gegeneinander.');
+  resizeCanvas();
+  render();
+  updateLeaderboard();
+  updateTurnInfo();
+  scheduleNextTurn();
+}
+
+function buildState(cfg, participants){
+  const size = cfg.size;
+  const n = participants.length;
+  const players = participants.map((part,i)=>{
+    const edge = i % 4;
+    const groupIndex = Math.floor(i/4);
+    const perEdge = Math.ceil(n/4);
+    const t = (groupIndex + 1) / (perEdge + 1);
+    const last = size-1;
+    const pos = Math.max(0, Math.min(last, Math.round(t*last)));
+    let r,c, goalRow=-1, goalCol=-1;
+    if(edge===0){ r=0; c=pos; goalRow=last; }
+    else if(edge===1){ r=pos; c=last; goalCol=0; }
+    else if(edge===2){ r=last; c=pos; goalRow=0; }
+    else { r=pos; c=0; goalCol=last; }
+    return {
+      key:part.key, id:i, human:part.human, bot:part.bot,
+      r,c, goalRow, goalCol, startEdge:edge,
+      wallsLeft: cfg.wallsPerPlayer,
+      color: cfg.theme.palette[i % cfg.theme.palette.length],
+      alive:true, finished:false, rank:null,
+      name: part.name
+    };
+  });
+  // resolve overlaps
+  const occ = new Set();
+  players.forEach(p=>{
+    let key=p.r+','+p.c, tries=0;
+    while(occ.has(key) && tries<size){
+      if(p.goalCol===-1){ p.c=(p.c+1)%size; } else { p.r=(p.r+1)%size; }
+      key=p.r+','+p.c; tries++;
+    }
+    occ.add(key);
+  });
+
   return {
-    mesh, health:100, alive:true,
-    pos:new THREE.Vector3(x,terrainHeightAt(x,z),z),
-    target:new THREE.Vector3(x,0,z),
-    fireTimer: Math.random()*3+2,
-    retarget: 0,
+    size, players,
+    hWalls:new Set(), vWalls:new Set(),
+    turnOrder: players.map(p=>p.id),
+    turnIdx:0, wallMode:false, over:false,
+    finishOrder:[], timer:null
   };
 }
-for(let i=0;i<BOT_COUNT;i++) bots.push(spawnBot(i));
-let botsAliveCount = BOT_COUNT;
 
-/* ---------------- Zone (storm) ---------------- */
-const zoneRingGeo = new THREE.RingGeometry(1,1.4,64);
-const zoneMat = new THREE.MeshBasicMaterial({color:0x5be7c4, side:THREE.DoubleSide, transparent:true, opacity:.9});
-const zoneRing = new THREE.Mesh(zoneRingGeo, zoneMat);
-zoneRing.rotation.x = -Math.PI/2;
-scene.add(zoneRing);
-
-const zone = {
-  center: new THREE.Vector2(0,0),
-  radius: 100,
-  targetRadius: 55,
-  phaseTime: 45,   // seconds until shrink starts
-  shrinking: false,
-  shrinkDuration: 40,
-  shrinkElapsed: 0,
-  stage: 0,
-};
-function updateZoneVisual(){
-  zoneRing.geometry.dispose();
-  zoneRing.geometry = new THREE.RingGeometry(zone.radius-0.4, zone.radius, 96);
-  zoneRing.position.set(zone.center.x, 0.3, zone.center.y);
+/* ============================ Geometry ============================ */
+function inBounds(r,c){ return r>=0 && c>=0 && r<state.size && c<state.size; }
+function edgeBlocked(r1,c1,r2,c2){
+  if(r1===r2){ const c=Math.min(c1,c2); return state.vWalls.has(r1+','+c); }
+  const r=Math.min(r1,r2); return state.hWalls.has(r+','+c1);
 }
-updateZoneVisual();
-
-/* ---------------- Projectiles ---------------- */
-const bullets = []; // {mesh, dir, life, owner}
-function spawnBullet(origin, dir, owner){
-  const geo = new THREE.SphereGeometry(0.12,6,6);
-  const mat = new THREE.MeshBasicMaterial({color: owner==='player'?0x5be7c4:0xff5d73});
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.copy(origin);
-  scene.add(mesh);
-  bullets.push({mesh, dir:dir.clone(), life:1.4, owner, pos:origin.clone(), speed:70});
-}
-
-/* ---------------- Input ---------------- */
-const keys = {};
-window.addEventListener('keydown', e=>{
-  keys[e.code]=true;
-  if(e.code==='Digit1') selectBuild('wall');
-  if(e.code==='Digit2') selectBuild('floor');
-  if(e.code==='Digit3') selectBuild('ramp');
-});
-window.addEventListener('keyup', e=> keys[e.code]=false);
-
-let pointerLocked = false;
-renderer.domElement.addEventListener('click', ()=>{
-  if(!isTouch && gameStarted){
-    renderer.domElement.requestPointerLock();
+function neighbors(r,c){
+  const res=[]; const deltas=[[-1,0],[1,0],[0,-1],[0,1]];
+  for(const [dr,dc] of deltas){
+    const nr=r+dr, nc=c+dc;
+    if(inBounds(nr,nc) && !edgeBlocked(r,c,nr,nc)) res.push([nr,nc]);
   }
-});
-document.addEventListener('pointerlockchange', ()=>{
-  pointerLocked = document.pointerLockElement === renderer.domElement;
-});
-window.addEventListener('mousemove', e=>{
-  if(!pointerLocked) return;
-  player.yaw -= e.movementX * 0.0022;
-  player.pitch -= e.movementY * 0.0022;
-  player.pitch = Math.max(-1.2, Math.min(1.2, player.pitch));
-});
-window.addEventListener('mousedown', e=>{
-  if(e.button===0 && pointerLocked && gameStarted) fireWeapon();
-});
-
-function selectBuild(type){
-  currentBuildType = type;
-  document.querySelectorAll('.buildBtn').forEach(b=>b.classList.toggle('active', b.dataset.b===type));
+  return res;
 }
-document.querySelectorAll('.buildBtn').forEach(b=>{
-  b.addEventListener('pointerdown', ()=> selectBuild(b.dataset.b));
-});
-selectBuild('wall');
-
-/* ---- touch controls ---- */
-let joyActive=false, joyStart={x:0,y:0}, joyVec={x:0,y:0};
-const joyZone = document.getElementById('joyZone');
-const joyStick = document.getElementById('joyStick');
-joyZone.addEventListener('pointerdown', e=>{
-  joyActive=true;
-  joyStart.x=e.clientX; joyStart.y=e.clientY;
-});
-window.addEventListener('pointermove', e=>{
-  if(joyActive){
-    let dx=e.clientX-joyStart.x, dy=e.clientY-joyStart.y;
-    const max=45;
-    const len=Math.hypot(dx,dy);
-    if(len>max){dx=dx/len*max; dy=dy/len*max;}
-    joyStick.style.left=(37+dx)+'px';
-    joyStick.style.top=(37+dy)+'px';
-    joyVec.x = dx/max; joyVec.y=dy/max;
+function occupantAt(r,c,excludeId){
+  return state.players.find(p=>p.alive && !p.finished && p.id!==excludeId && p.r===r && p.c===c);
+}
+function legalMoves(p){
+  const moves=[];
+  for(const [nr,nc] of neighbors(p.r,p.c)){
+    const occ = occupantAt(nr,nc,p.id);
+    if(!occ){ moves.push([nr,nc]); continue; }
+    const dr=nr-p.r, dc=nc-p.c, jr=nr+dr, jc=nc+dc;
+    if(inBounds(jr,jc) && !edgeBlocked(nr,nc,jr,jc) && !occupantAt(jr,jc,p.id)){
+      moves.push([jr,jc]);
+    } else {
+      const sides = dr!==0 ? [[nr,nc-1],[nr,nc+1]] : [[nr-1,nc],[nr+1,nc]];
+      for(const [sr,sc] of sides){
+        if(inBounds(sr,sc) && !edgeBlocked(nr,nc,sr,sc) && !occupantAt(sr,sc,p.id)) moves.push([sr,sc]);
+      }
+    }
   }
-  if(lookActive){
-    const dx = e.clientX - lookLast.x, dy = e.clientY - lookLast.y;
-    player.yaw -= dx*0.0032;
-    player.pitch -= dy*0.0032;
-    player.pitch = Math.max(-1.2, Math.min(1.2, player.pitch));
-    lookLast.x = e.clientX; lookLast.y = e.clientY;
+  return moves;
+}
+function bfsToGoal(p, fromR, fromC){
+  const size=state.size;
+  const visited=new Array(size*size).fill(false);
+  const prev=new Array(size*size).fill(-1);
+  const q=[[fromR,fromC]]; visited[fromR*size+fromC]=true;
+  let goalCell=null, head=0;
+  while(head<q.length){
+    const [r,c]=q[head++];
+    if((p.goalRow!==-1 && r===p.goalRow) || (p.goalCol!==-1 && c===p.goalCol)){ goalCell=[r,c]; break; }
+    for(const [nr,nc] of neighbors(r,c)){
+      const idx=nr*size+nc;
+      if(!visited[idx]){ visited[idx]=true; prev[idx]=r*size+c; q.push([nr,nc]); }
+    }
   }
-});
-window.addEventListener('pointerup', e=>{
-  if(joyActive){ joyActive=false; joyVec={x:0,y:0}; joyStick.style.left='37px'; joyStick.style.top='37px';}
-  lookActive=false;
-});
-
-let lookActive=false, lookLast={x:0,y:0};
-renderer.domElement.addEventListener('pointerdown', e=>{
-  if(!isTouch) return;
-  if(e.clientX > window.innerWidth*0.42){
-    lookActive=true; lookLast.x=e.clientX; lookLast.y=e.clientY;
+  if(!goalCell) return {dist:Infinity, path:[]};
+  const path=[goalCell]; let cur=goalCell[0]*size+goalCell[1];
+  while(prev[cur]!==-1){ const pr=Math.floor(prev[cur]/size), pc=prev[cur]%size; path.push([pr,pc]); cur=prev[cur]; }
+  path.reverse();
+  return {dist:path.length-1, path};
+}
+function allPlayersHavePath(){
+  for(const p of state.players){
+    if(p.finished || !p.alive) continue;
+    if(bfsToGoal(p,p.r,p.c).dist===Infinity) return false;
   }
-});
-
-let jumpPressed=false;
-document.getElementById('jumpBtn').addEventListener('pointerdown', ()=>{ jumpPressed=true; });
-document.getElementById('fireBtn').addEventListener('pointerdown', ()=>{ if(gameStarted) fireWeapon(); });
-
-// build placement: tap-hold ghost then release to place -> simplified: single tap on active build button places instantly near crosshair
-document.querySelectorAll('.buildBtn').forEach(b=>{
-  b.addEventListener('pointerup', ()=>{ placeBuild(); });
-});
-window.addEventListener('keydown', e=>{
-  if(e.code==='KeyF' || e.code==='KeyE') placeBuild();
-});
-renderer.domElement.addEventListener('contextmenu', e=>e.preventDefault());
-window.addEventListener('mousedown', e=>{
-  if(e.button===2 && pointerLocked) placeBuild();
-});
-
-/* ---------------- Weapon / combat ---------------- */
-let fireCooldown = 0;
-function fireWeapon(){
-  if(fireCooldown>0 || !player.alive) return;
-  fireCooldown = 0.22;
-  const dir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
-  const origin = camera.position.clone().add(dir.clone().multiplyScalar(1.2));
-  spawnBullet(origin, dir, 'player');
-  muzzleFlash();
+  return true;
 }
-function muzzleFlash(){
-  document.getElementById('crosshair').style.opacity = 0.4;
-  setTimeout(()=>{document.getElementById('crosshair').style.opacity=1;}, 60);
+function tryPlaceWall(type,r,c,playerId){
+  const p = state.players.find(x=>x.id===playerId);
+  if(!p || p.wallsLeft<=0) return false;
+  if(type==='h'){
+    if(r<0||r>=state.size-1||c<0||c>=state.size) return false;
+    const key=r+','+c; if(state.hWalls.has(key)) return false;
+    state.hWalls.add(key);
+  } else {
+    if(r<0||r>=state.size||c<0||c>=state.size-1) return false;
+    const key=r+','+c; if(state.vWalls.has(key)) return false;
+    state.vWalls.add(key);
+  }
+  if(!allPlayersHavePath()){
+    if(type==='h') state.hWalls.delete(r+','+c); else state.vWalls.delete(r+','+c);
+    return false;
+  }
+  p.wallsLeft--; return true;
 }
 
-function killFeed(msg){
-  const el = document.createElement('div');
-  el.className='killmsg';
-  el.textContent = msg;
-  document.getElementById('killfeed').appendChild(el);
-  setTimeout(()=>el.remove(), 4000);
+/* ============================ Turn engine — sequential ============================ */
+function currentPlayer(){ return state.players[state.turnOrder[state.turnIdx % state.turnOrder.length]]; }
+
+function advanceTurn(){
+  if(state.over) return;
+  let tries=0;
+  do{ state.turnIdx++; tries++; }
+  while((currentPlayer().finished || !currentPlayer().alive) && tries<state.turnOrder.length+1);
+  updateTurnInfo();
+  render();
+  if(checkGameEnd()) return;
+  scheduleNextTurn();
 }
 
-/* ---------------- Game state ---------------- */
-let gameStarted = false;
-let gameOver = false;
-const clock = new THREE.Clock();
-
-document.getElementById('playBtn').addEventListener('click', startGame);
-document.getElementById('restartBtn').addEventListener('click', ()=> location.reload());
-
-function startGame(){
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('hud').classList.remove('hidden');
-  gameStarted = true;
-  clock.start();
+function scheduleNextTurn(){
+  clearTimeout(state.timer);
+  const p = currentPlayer();
+  if(p.human){ render(); return; } // wait for click
+  state.timer = setTimeout(()=>{ botTurn(p); }, cfg.botDelay);
 }
 
-// fake short "loading" for polish
-let fakeLoad = 0;
-const loadFill = document.getElementById('loadFill');
-const playBtn = document.getElementById('playBtn');
-const loadIv = setInterval(()=>{
-  fakeLoad += 8 + Math.random()*10;
-  if(fakeLoad>=100){ fakeLoad=100; clearInterval(loadIv); playBtn.classList.remove('hidden'); document.getElementById('loadBar').classList.add('hidden');}
-  loadFill.style.width = fakeLoad+'%';
-}, 90);
+function movePlayer(p,r,c){
+  p.r=r; p.c=c;
+  if((p.goalRow!==-1 && r===p.goalRow) || (p.goalCol!==-1 && c===p.goalCol)){
+    p.finished=true;
+    state.finishOrder.push(p.id);
+    p.rank = state.finishOrder.length;
+    showMsg((p.human?'Du hast':p.name+' hat')+' Platz '+p.rank+' erreicht! 🎉');
+  }
+}
 
-/* ---------------- Collision helper ---------------- */
-function collidesXZ(pos){
-  const pBox = new THREE.Box3(
-    new THREE.Vector3(pos.x-PLAYER_RADIUS, pos.y, pos.z-PLAYER_RADIUS),
-    new THREE.Vector3(pos.x+PLAYER_RADIUS, pos.y+PLAYER_HEIGHT, pos.z+PLAYER_RADIUS)
-  );
-  for(const box of staticColliders){
-    if(pBox.intersectsBox(box)) return true;
+// Each bot acts ONE step at a time; render+leaderboard update happens immediately after,
+// then the *next* player's turn is scheduled — never simultaneous.
+function botTurn(p){
+  if(state.over) return;
+  const persona = p.bot || {aggr:0.4, skill:0.8};
+  const {dist, path} = bfsToGoal(p, p.r, p.c);
+  const moves = legalMoves(p);
+
+  let placedWall=false;
+  if(p.wallsLeft>0 && Math.random() < persona.aggr){
+    const rival = findLeadingRival(p);
+    if(rival) placedWall = attemptBlockingWall(p, rival);
+  }
+  if(!placedWall){
+    const useSmart = Math.random() < persona.skill;
+    if(useSmart && dist!==Infinity && path.length>1){
+      const [nr,nc] = path[1];
+      const isLegal = moves.some(m=>m[0]===nr && m[1]===nc);
+      if(isLegal) movePlayer(p,nr,nc);
+      else if(moves.length){ const m=moves[Math.floor(Math.random()*moves.length)]; movePlayer(p,m[0],m[1]); }
+    } else if(moves.length){
+      const m=moves[Math.floor(Math.random()*moves.length)];
+      movePlayer(p,m[0],m[1]);
+    }
+  }
+  updateLeaderboard();
+  advanceTurn(); // renders immediately; next actor scheduled only after this one fully resolved
+}
+
+function findLeadingRival(self){
+  let best=null, bestDist=Infinity;
+  for(const p of state.players){
+    if(p.id===self.id || p.finished || !p.alive) continue;
+    const {dist} = bfsToGoal(p,p.r,p.c);
+    if(dist<bestDist){ bestDist=dist; best=p; }
+  }
+  return best;
+}
+function attemptBlockingWall(self, rival){
+  const {path} = bfsToGoal(rival, rival.r, rival.c);
+  if(path.length<2) return false;
+  const [r1,c1]=path[0], [r2,c2]=path[1];
+  if(r1===r2){ const c=Math.min(c1,c2); return tryPlaceWall('v', r1, c, self.id); }
+  const r=Math.min(r1,r2); return tryPlaceWall('h', r, c1, self.id);
+}
+
+/* Game ends once all-but-one participants have finished — gives a full ranking for Elo. */
+function checkGameEnd(){
+  if(state.over) return true;
+  const unfinished = state.players.filter(p=>!p.finished && p.alive);
+  if(unfinished.length<=1){
+    if(unfinished.length===1){
+      const last = unfinished[0];
+      last.finished = true;
+      state.finishOrder.push(last.id);
+      last.rank = state.finishOrder.length;
+    }
+    endGame();
+    return true;
   }
   return false;
 }
-function groundHeightAt(x,z){
-  let h = terrainHeightAt(x,z);
-  // check build floors above
-  for(const bp of buildPieces){
-    const b = bp.box;
-    if(x>=b.min.x && x<=b.max.x && z>=b.min.z && z<=b.max.z){
-      h = Math.max(h, b.max.y);
-    }
-  }
-  return h;
-}
 
-/* ---------------- Main loop ---------------- */
-function updatePlayer(dt){
-  if(!player.alive) return;
-  const forward = new THREE.Vector3(Math.sin(player.yaw), 0, -Math.cos(player.yaw)*-1);
-  forward.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-  const right = new THREE.Vector3(Math.cos(player.yaw), 0, Math.sin(player.yaw));
+function endGame(){
+  state.over=true;
+  clearTimeout(state.timer);
+  const ranked = state.players.filter(p=>p.rank!=null).sort((a,b)=>a.rank-b.rank);
+  const forElo = ranked.map(p=>({key:p.key, name:p.name.replace(/\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF]\uFE0F?/gu,'').trim(), rank:p.rank}));
+  const deltas = applyMatchResults(forElo);
 
-  let mv = new THREE.Vector2(0,0);
-  if(keys['KeyW']) mv.y += 1;
-  if(keys['KeyS']) mv.y -= 1;
-  if(keys['KeyA']) mv.x -= 1;
-  if(keys['KeyD']) mv.x += 1;
-  if(isTouch){ mv.x += joyVec.x; mv.y -= joyVec.y; }
-  if(mv.length()>1) mv.normalize();
-
-  const moveDir = new THREE.Vector3();
-  moveDir.addScaledVector(forward, mv.y);
-  moveDir.addScaledVector(right, mv.x);
-
-  const speed = player.speed;
-  const nextPos = player.pos.clone();
-  nextPos.x += moveDir.x*speed*dt;
-  nextPos.z += moveDir.z*speed*dt;
-
-  if(!collidesXZ(new THREE.Vector3(nextPos.x, player.pos.y, player.pos.z))) player.pos.x = nextPos.x;
-  if(!collidesXZ(new THREE.Vector3(player.pos.x, player.pos.y, nextPos.z))) player.pos.z = nextPos.z;
-
-  // jump
-  const wantJump = keys['Space'] || jumpPressed;
-  jumpPressed = false;
-  if(wantJump && player.onGround){
-    player.vel.y = player.jumpPower;
-    player.onGround = false;
-  }
-
-  player.vel.y += GRAVITY*dt;
-  player.pos.y += player.vel.y*dt;
-
-  const gH = groundHeightAt(player.pos.x, player.pos.z);
-  if(player.pos.y <= gH){
-    player.pos.y = gH;
-    player.vel.y = 0;
-    player.onGround = true;
-  }
-
-  // fell in water / out of world -> gentle clamp
-  if(player.pos.y < -3){ player.pos.set(0, 10, 0); player.vel.set(0,0,0); }
-
-  camera.position.copy(player.pos).add(new THREE.Vector3(0, PLAYER_HEIGHT, 0));
-  const lookDir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
-  camera.lookAt(camera.position.clone().add(lookDir));
-
-  updateGhost();
-
-  // storm damage
-  const distToCenter = Math.hypot(player.pos.x-zone.center.x, player.pos.z-zone.center.y);
-  if(distToCenter > zone.radius){
-    damagePlayer(6*dt);
-  }
-}
-
-function damagePlayer(amount){
-  if(!player.alive) return;
-  player.health -= amount;
-  if(player.health <= 0){
-    player.health = 0;
-    player.alive = false;
-    endGame(false);
-  }
-  document.getElementById('healthBar').style.width = Math.max(0,player.health)+'%';
-}
-
-function updateBots(dt){
-  for(const b of bots){
-    if(!b.alive) continue;
-
-    // storm damage for bots too
-    const distC = Math.hypot(b.pos.x-zone.center.x, b.pos.z-zone.center.y);
-    if(distC > zone.radius){
-      b.health -= 5*dt;
-      if(b.health<=0){ killBot(b, 'Sturm'); continue; }
-    }
-
-    b.retarget -= dt;
-    if(b.retarget <= 0){
-      b.retarget = 3 + Math.random()*3;
-      const ang = Math.random()*Math.PI*2;
-      const r = 5 + Math.random()*15;
-      let tx = b.pos.x + Math.cos(ang)*r;
-      let tz = b.pos.z + Math.sin(ang)*r;
-      // bias toward zone center as it shrinks
-      tx = tx*0.85 + zone.center.x*0.15;
-      tz = tz*0.85 + zone.center.y*0.15;
-      b.target.set(tx,0,tz);
-    }
-    const toT = new THREE.Vector2(b.target.x-b.pos.x, b.target.z-b.pos.z);
-    if(toT.length()>0.3){
-      toT.normalize();
-      b.pos.x += toT.x*3.2*dt;
-      b.pos.z += toT.y*3.2*dt;
-      b.mesh.rotation.y = Math.atan2(toT.x, toT.y);
-    }
-    b.pos.y = terrainHeightAt(b.pos.x,b.pos.z);
-    b.mesh.position.set(b.pos.x, b.pos.y+1, b.pos.z);
-
-    // shoot at player occasionally if close-ish
-    const dToPlayer = b.pos.distanceTo(new THREE.Vector3(player.pos.x,b.pos.y,player.pos.z));
-    b.fireTimer -= dt;
-    if(dToPlayer < 45 && player.alive && b.fireTimer<=0){
-      b.fireTimer = 1.6 + Math.random()*1.6;
-      const dir = new THREE.Vector3(player.pos.x-b.pos.x, (player.pos.y+1)-(b.pos.y+1.4), player.pos.z-b.pos.z).normalize();
-      spawnBullet(b.mesh.position.clone(), dir, 'bot');
-    }
-  }
-}
-
-function killBot(b, by){
-  b.alive = false;
-  scene.remove(b.mesh);
-  botsAliveCount--;
-  killFeed((by||'Du')+' hat einen Gegner eliminiert');
-  document.getElementById('playersLeft').textContent = (botsAliveCount+1)+' Spieler übrig';
-  if(botsAliveCount<=0){
-    endGame(true);
-  }
-}
-
-function updateBullets(dt){
-  for(let i=bullets.length-1;i>=0;i--){
-    const bl = bullets[i];
-    bl.life -= dt;
-    bl.pos.addScaledVector(bl.dir, bl.speed*dt);
-    bl.mesh.position.copy(bl.pos);
-
-    let hit = false;
-    if(bl.owner==='player'){
-      for(const b of bots){
-        if(!b.alive) continue;
-        if(bl.pos.distanceTo(b.mesh.position) < 1.1){
-          b.health -= 34;
-          hit = true;
-          if(b.health<=0) killBot(b,'Du');
-          break;
-        }
-      }
-    } else {
-      if(player.alive && bl.pos.distanceTo(camera.position) < 1.2){
-        damagePlayer(9);
-        hit = true;
-      }
-    }
-    // ground/structure collision (cheap)
-    if(bl.pos.y < groundHeightAt(bl.pos.x,bl.pos.z)) hit = true;
-
-    if(hit || bl.life<=0){
-      scene.remove(bl.mesh);
-      bullets.splice(i,1);
-    }
-  }
-}
-
-function updateZone(dt){
-  zone.phaseTime -= dt;
-  if(zone.phaseTime<=0 && !zone.shrinking && zone.radius>zone.targetRadius+1){
-    zone.shrinking = true;
-    zone.shrinkElapsed = 0;
-    zone.startRadius = zone.radius;
-  }
-  if(zone.shrinking){
-    zone.shrinkElapsed += dt;
-    const t = Math.min(1, zone.shrinkElapsed/zone.shrinkDuration);
-    zone.radius = zone.startRadius + (zone.targetRadius-zone.startRadius)*t;
-    updateZoneVisual();
-    if(t>=1){
-      zone.shrinking = false;
-      zone.stage++;
-      if(zone.stage < 4){
-        zone.targetRadius = Math.max(10, zone.targetRadius - 20);
-        zone.phaseTime = 30;
-        zone.center.set(zone.center.x + (Math.random()-0.5)*20, zone.center.y + (Math.random()-0.5)*20);
-      }
-    }
-  }
-  const timerEl = document.getElementById('zoneTimer');
-  const subEl = document.getElementById('zoneSub');
-  if(zone.shrinking){
-    subEl.textContent = 'Zone zieht sich zusammen';
-    timerEl.textContent = Math.ceil(zone.shrinkDuration - zone.shrinkElapsed) + 's';
+  const human = state.players.find(p=>p.human);
+  const title = document.getElementById('winTitle');
+  const sub = document.getElementById('winSub');
+  if(human){
+    title.textContent = human.rank===1 ? '🏆 Du hast gewonnen!' : '🏁 Spiel beendet';
+    sub.textContent = 'Du bist als Platz '+human.rank+' von '+state.players.length+' Teilnehmern angekommen.';
   } else {
-    subEl.textContent = 'Nächste Verengung in';
-    timerEl.textContent = Math.ceil(zone.phaseTime) + 's';
+    title.textContent = '🏁 Bot-Match beendet';
+    sub.textContent = ranked[0].name + ' hat als Erster das Ziel erreicht.';
+  }
+
+  const body = document.getElementById('resultBody');
+  body.innerHTML = ranked.map(p=>{
+    const d = deltas[p.key] || 0;
+    const cls = d>=0 ? 'eloUp' : 'eloDown';
+    const sign = d>=0 ? '+' : '';
+    const newElo = PROFILES[p.key] ? Math.round(PROFILES[p.key].elo) : '—';
+    return `<tr><td>${p.rank}</td><td>${p.name}</td><td>${newElo}</td><td class="${cls}">${sign}${d.toFixed(1)}</td></tr>`;
+  }).join('');
+
+  document.getElementById('winOverlay').classList.add('show');
+  updateTurnInfo();
+  renderBotList();
+}
+
+/* ============================ Rendering ============================ */
+function resizeCanvas(){
+  const wrap = document.getElementById('canvasWrap');
+  const s = Math.min(wrap.clientWidth-40, wrap.clientHeight-40, 900);
+  canvas.width=s; canvas.height=s;
+}
+window.addEventListener('resize', ()=>{ if(state){ resizeCanvas(); render(); }});
+function cellSize(){ return canvas.width/state.size; }
+
+function drawGoalZones(){
+  const cs = cellSize();
+  const size = state.size;
+  const groups = {}; // edge -> colors[]
+  state.players.forEach(p=>{
+    const edge = p.goalRow===0 ? 'top' : p.goalRow===size-1 ? 'bottom' : p.goalCol===0 ? 'left' : 'right';
+    (groups[edge]=groups[edge]||[]).push(p.color);
+  });
+  Object.keys(groups).forEach(edge=>{
+    const colors = groups[edge];
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    colors.forEach((col,i)=>{
+      ctx.fillStyle = col;
+      const t = 5;
+      if(edge==='top') ctx.fillRect(0,0,canvas.width,t);
+      if(edge==='bottom') ctx.fillRect(0,canvas.height-t,canvas.width,t);
+      if(edge==='left') ctx.fillRect(0,0,t,canvas.height);
+      if(edge==='right') ctx.fillRect(canvas.width-t,0,t,canvas.height);
+    });
+    ctx.restore();
+  });
+
+  // strong pulsing marker for human's goal
+  const human = state.players.find(p=>p.human);
+  if(human){
+    const edge = human.goalRow===0?'top':human.goalRow===size-1?'bottom':human.goalCol===0?'left':'right';
+    const pulse = 0.55 + 0.45*Math.sin(Date.now()/260);
+    ctx.save();
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([14,10]);
+    ctx.lineDashOffset = -Date.now()/40;
+    ctx.globalAlpha = pulse;
+    ctx.beginPath();
+    if(edge==='top'){ ctx.moveTo(3,3); ctx.lineTo(canvas.width-3,3); }
+    if(edge==='bottom'){ ctx.moveTo(3,canvas.height-3); ctx.lineTo(canvas.width-3,canvas.height-3); }
+    if(edge==='left'){ ctx.moveTo(3,3); ctx.lineTo(3,canvas.height-3); }
+    if(edge==='right'){ ctx.moveTo(canvas.width-3,3); ctx.lineTo(canvas.width-3,canvas.height-3); }
+    ctx.stroke();
+    ctx.restore();
+
+    const label = document.getElementById('goalLabel');
+    const wrap = document.getElementById('canvasWrap').getBoundingClientRect();
+    const cnv = canvas.getBoundingClientRect();
+    label.textContent = '🏁 DEIN ZIEL';
+    let lx,ly;
+    if(edge==='top'){ lx = cnv.left-wrap.left + cnv.width/2 - 40; ly = cnv.top-wrap.top - 22; }
+    else if(edge==='bottom'){ lx = cnv.left-wrap.left + cnv.width/2 - 40; ly = cnv.top-wrap.top + cnv.height + 6; }
+    else if(edge==='left'){ lx = cnv.left-wrap.left - 90; ly = cnv.top-wrap.top + cnv.height/2 - 8; }
+    else { lx = cnv.left-wrap.left + cnv.width + 6; ly = cnv.top-wrap.top + cnv.height/2 - 8; }
+    label.style.left = lx+'px'; label.style.top = ly+'px';
   }
 }
 
-function endGame(won){
-  if(gameOver) return;
-  gameOver = true;
-  gameStarted = false;
-  document.exitPointerLock && document.exitPointerLock();
-  const endScreen = document.getElementById('endScreen');
-  document.getElementById('hud').classList.add('hidden');
-  document.getElementById('endTitle').textContent = won ? '#1 — SIEG!' : 'ELIMINIERT';
-  document.getElementById('endTitle').style.background = won
-    ? 'linear-gradient(90deg,#ffcf5c,#5be7c4)'
-    : 'linear-gradient(90deg,#ff5d73,#ffcf5c)';
-  document.getElementById('endTitle').style.webkitBackgroundClip = 'text';
-  document.getElementById('endTitle').style.backgroundClip = 'text';
-  document.getElementById('endText').textContent = won
-    ? 'Du hast alle Gegner überlebt und die Zone gehalten. Skyshard-Sieger!'
-    : botsAliveCount+' Gegner waren noch übrig, als du eliminiert wurdest. Versuch es nochmal!';
-  endScreen.classList.remove('hidden');
-}
+function render(){
+  if(!state) return;
+  const theme = cfg.theme;
+  const cs = cellSize();
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 
-function animate(){
-  requestAnimationFrame(animate);
-  const dt = Math.min(0.05, clock.getDelta());
-  fireCooldown -= dt;
+  drawGoalZones();
 
-  if(gameStarted && !gameOver){
-    updatePlayer(dt);
-    updateBots(dt);
-    updateBullets(dt);
-    updateZone(dt);
+  ctx.strokeStyle = theme.grid; ctx.lineWidth=1;
+  for(let i=0;i<=state.size;i++){
+    ctx.beginPath(); ctx.moveTo(i*cs,0); ctx.lineTo(i*cs,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*cs); ctx.lineTo(canvas.width,i*cs); ctx.stroke();
   }
-  renderer.render(scene, camera);
+
+  const human = state.players.find(p=>p.human);
+  const isHumanTurn = human && !state.over && currentPlayer().id===human.id && human.alive && !human.finished;
+  if(isHumanTurn && !state.wallMode){
+    ctx.fillStyle = theme.highlight+'55';
+    legalMoves(human).forEach(([r,c])=>{
+      ctx.beginPath(); ctx.roundRect(c*cs+4, r*cs+4, cs-8, cs-8, 6); ctx.fill();
+    });
+  }
+
+  ctx.fillStyle = theme.wall;
+  state.hWalls.forEach(key=>{ const [r,c]=key.split(',').map(Number); ctx.fillRect(c*cs+2,(r+1)*cs-3,cs-4,6); });
+  state.vWalls.forEach(key=>{ const [r,c]=key.split(',').map(Number); ctx.fillRect((c+1)*cs-3,r*cs+2,6,cs-4); });
+
+  if(isHumanTurn && state.wallMode){
+    ctx.fillStyle='#ffffff22';
+    for(let r=0;r<state.size-1;r++) for(let c=0;c<state.size;c++) if(!state.hWalls.has(r+','+c)) ctx.fillRect(c*cs+2,(r+1)*cs-2,cs-4,4);
+    for(let r=0;r<state.size;r++) for(let c=0;c<state.size-1;c++) if(!state.vWalls.has(r+','+c)) ctx.fillRect((c+1)*cs-2,r*cs+2,4,cs-4);
+  }
+
+  state.players.forEach(p=>{
+    if(!p.alive) return;
+    const cx=p.c*cs+cs/2, cy=p.r*cs+cs/2, rad=cs*0.32;
+    ctx.save();
+    if(p.finished) ctx.globalAlpha=0.35;
+    ctx.shadowColor=p.color; ctx.shadowBlur=14;
+    ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    if(p.human){
+      ctx.lineWidth=Math.max(2,cs*0.06); ctx.strokeStyle='#ffd166';
+      ctx.beginPath(); ctx.arc(cx,cy,rad,0,Math.PI*2); ctx.stroke();
+    }
+    if(p.finished){
+      ctx.fillStyle='#000000cc'; ctx.font=(cs*0.28)+'px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.rank,cx,cy);
+    }
+    ctx.restore();
+  });
+
+  if(state && !state.over && state.players.some(p=>p.human)){
+    requestAnimationFrame(()=>{ if(state && !state.over) render(); }); // keep goal pulse animated
+  }
 }
-animate();
+
+/* ============================ Input ============================ */
+canvas.addEventListener('click',(ev)=>{
+  if(!state || state.over) return;
+  const p = currentPlayer();
+  if(!p.human) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = ev.clientX-rect.left, y = ev.clientY-rect.top;
+  const cs = cellSize();
+
+  if(state.wallMode){
+    const gx=x/cs, gy=y/cs, c=Math.floor(gx), r=Math.floor(gy);
+    const fracX=gx-c, fracY=gy-r;
+    const distRight=1-fracX, distBottom=1-fracY;
+    let placed=false;
+    if(distBottom<0.28 && distBottom<distRight) placed=tryPlaceWall('h',r,c,p.id);
+    else if(distRight<0.28) placed=tryPlaceWall('v',r,c,p.id);
+    else if(fracY<0.28) placed=tryPlaceWall('h',r-1,c,p.id);
+    else if(fracX<0.28) placed=tryPlaceWall('v',r,c-1,p.id);
+    if(placed){
+      showMsg('Mauer platziert. Verbleibend: '+p.wallsLeft);
+      updateLeaderboard();
+      advanceTurn();
+    } else {
+      showMsg('Ungültige Mauer-Position.');
+    }
+    render();
+    return;
+  }
+
+  const c=Math.floor(x/cs), r=Math.floor(y/cs);
+  if(legalMoves(p).some(m=>m[0]===r && m[1]===c)){
+    movePlayer(p,r,c);
+    updateLeaderboard();
+    advanceTurn();
+  }
+});
+
+/* ============================ HUD ============================ */
+function updateTurnInfo(){
+  const el = document.getElementById('turnInfo');
+  if(!state || state.over){ el.textContent='Spiel beendet'; return; }
+  const p = currentPlayer();
+  el.innerHTML = '<span class="dot" style="color:'+p.color+'"></span>' + (p.human?'Du bist am Zug':p.name+' ist am Zug') + ' · Mauern: '+p.wallsLeft;
+}
+function updateLeaderboard(){
+  const lb = document.getElementById('leaderboard');
+  const sorted = [...state.players].sort((a,b)=>{
+    if(a.finished && b.finished) return a.rank-b.rank;
+    if(a.finished) return -1; if(b.finished) return 1;
+    return bfsToGoal(a,a.r,a.c).dist - bfsToGoal(b,b.r,b.c).dist;
+  });
+  lb.innerHTML = sorted.slice(0,20).map(p=>`<div class="lb-chip"><span class="swatch" style="background:${p.color}"></span>${p.human?'<b>Du</b>':p.name}${p.finished?' 🏁'+p.rank:''}</div>`).join('');
+}
+let msgTimer=null;
+function showMsg(text){
+  const el=document.getElementById('msg'); el.textContent=text; el.classList.add('show');
+  clearTimeout(msgTimer); msgTimer=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    this.beginPath(); this.moveTo(x+r,y);
+    this.arcTo(x+w,y,x+w,y+h,r); this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r); this.arcTo(x,y,x+w,y,r); this.closePath(); return this;
+  };
+}
+
+/* Initial state: pre-select a handful of varied bots so first start is quick */
+window.addEventListener('load', ()=>{
+  renderBotList();
+  randomSelect(6);
+  resizeCanvas();
+});
 
 })();
 </script>
