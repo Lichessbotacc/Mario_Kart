@@ -68,6 +68,17 @@
   #goalLabel{position:absolute; font-size:12px; font-weight:700; color:var(--accent); pointer-events:none; text-shadow:0 0 8px #000; letter-spacing:.03em; z-index:6;}
   #h2hBar{ padding:5px 16px; background:#00000040; font-size:12.5px; text-align:center; font-weight:600; border-top:1px solid #ffffff14; display:none; flex-shrink:0;}
   #h2hBar b{color:var(--accent);}
+  #wallModeIndicator{
+    position:absolute; top:14px; right:14px; z-index:7;
+    display:flex; align-items:center; gap:8px;
+    background:#00000099; border:1px solid #ffffff2a; border-radius:20px;
+    padding:6px 14px 6px 10px; font-size:12.5px; font-weight:700;
+    cursor:pointer; user-select:none; transition:background .15s ease, box-shadow .15s ease;
+  }
+  #wallModeIndicator .swDot{width:10px; height:10px; border-radius:50%; background:#ffffff44; transition:background .15s ease, box-shadow .15s ease;}
+  #wallModeIndicator.active{ background:linear-gradient(90deg,#ffd16644,#ff9a3c44); border-color:#ffd166aa; box-shadow:0 0 16px #ffd16655;}
+  #wallModeIndicator.active .swDot{ background:var(--accent); box-shadow:0 0 8px 2px var(--accent);}
+  #wallModeIndicator[hidden]{display:none;}
   .overlay{ position:absolute; inset:0; background:#000000cc; display:none; align-items:center; justify-content:center; flex-direction:column; z-index:20; backdrop-filter:blur(4px); padding:20px; overflow-y:auto;}
   .overlay.show{display:flex;}
   .overlay h2{font-size:32px; margin:0 0 10px 0; color:var(--accent); text-align:center;}
@@ -151,8 +162,8 @@
       <input type="checkbox" id="autoMode" style="flex:0; width:18px; height:18px;">
     </div>
     <div class="row" style="font-size:11px; color:var(--muted);">
-      An = Bots spielen endlos weiter: bei jeder Partie werden Spieleranzahl (2–10), Feldgröße und alle Spielmodi (Nebel, Doppelzug, Team, Wanderndes Ziel, Mauern verfallen) zufällig neu gewürfelt. Jeder entstehende Modus bekommt seine eigene Elo-Rangliste (siehe „Profile &amp; Elo“).<br>
-      <b>Wichtig:</b> Ein Browser-Tab kann nicht rechnen, wenn die Seite komplett geschlossen ist — echtes Weiterspielen „im Hintergrund ohne offene Seite“ ist technisch nicht möglich. Stattdessen merkt sich die Seite, wann du zuletzt da warst, und simuliert beim nächsten Öffnen automatisch eine passende Anzahl verpasster Partien im Schnelldurchlauf nach, bevor sie live weiterläuft.
+      An = Bots spielen endlos weiter: bei jeder Partie werden Spieleranzahl (2–10), Feldgröße und alle Spielmodi (Nebel, Doppelzug, Team, Wanderndes Ziel, Mauern verfallen) zufällig neu gewürfelt. Jeder entstehende Modus bekommt seine eigene Elo-Rangliste (siehe „Profile &amp; Elo“). Ist oben "Ich spiele mit" aktiviert, spielst du (bzw. ihr zu zweit) bei jeder Zufalls-Partie ganz normal mit.<br>
+      <b>Wichtig:</b> Ein Browser-Tab kann nicht rechnen, wenn die Seite komplett geschlossen ist — echtes Weiterspielen „im Hintergrund ohne offene Seite“ ist technisch nicht möglich. Stattdessen merkt sich die Seite, wann du zuletzt da warst, und simuliert beim nächsten Öffnen automatisch eine passende Anzahl verpasster Partien im Schnelldurchlauf nach (nur mit Bots), bevor sie live weiterläuft.
     </div>
   </div>
 
@@ -246,21 +257,19 @@
   </div>
 
   <button id="startBtn" class="btnPrimary" style="width:100%;">🎮 Match starten</button>
-  <button id="randomDuelBtn" class="btnGhost" style="width:100%; margin-top:8px;">🎲 Zufalls-Duell (Du vs. Zufalls-Bot)</button>
-  <button id="wallModeBtn" class="btnGhost" style="width:100%; margin-top:8px;">🧱 Mauer-Modus: AUS</button>
   <button id="pauseBtn" class="btnGhost" style="width:100%; margin-top:8px;">⏸ Pause (Bots)</button>
   <button id="profileBtn" class="btnGhost" style="width:100%; margin-top:8px;">📊 Profile &amp; Elo</button>
 
   <div id="legend">
     <b>Steuerung:</b><br>
     • Grün markiertes Feld anklicken → dorthin ziehen.<br>
-    • Mauer-Modus an → Klick auf eine Feldkante platziert eine Mauer.<br>
+    • Mauer-Modus an (Schalter oben rechts im Spielfeld) → Klick auf eine Feldkante platziert eine Mauer.<br>
     • Du bist der golden umrandete Kreis. Dein Ziel ist immer <b>die Mitte des Feldes</b> — mit "ZIEL: MITTE" markiert.<br>
     • Jeder Zug passiert sofort, nacheinander — kein gleichzeitiges Bewegen.<br>
     • <b>Spieler 1</b>: Pfeiltasten oder Klick, <b>W</b> schaltet Mauer-Modus um (wenn Spieler 1 dran ist).<br>
     • <b>Spieler 2</b> (lokaler Multiplayer): <b>WASD</b> oder Klick, <b>W</b> bewegt nach oben statt Mauer-Modus umzuschalten.<br>
     • <b>Esc</b> schließt Fenster. <b>Mauern verfallen</b>: platzierte Mauern verschwinden nach X Runden automatisch und werden dem Besitzer zurückgegeben.<br>
-    • <b>Vollzufalls-Dauerlauf</b>: läuft endlos, jede Partie mit zufälliger Spieleranzahl, Feldgröße und Modus-Kombination.
+    • <b>Vollzufalls-Dauerlauf</b>: läuft endlos, jede Partie mit zufälliger Spieleranzahl, Feldgröße und Modus-Kombination. Ist "Ich spiele mit" an, spielst du bei jeder Runde mit.
   </div>
 </div>
 
@@ -275,6 +284,10 @@
     <canvas id="board" width="900" height="900"></canvas>
     <div id="msg"></div>
     <div id="goalLabel"></div>
+    <div id="wallModeIndicator" hidden>
+      <span class="swDot"></span>
+      <span id="wallModeIndicatorText">🧱 Mauer-Modus: AUS</span>
+    </div>
 
     <div class="overlay" id="winOverlay">
       <h2 id="winTitle">🏆 Ergebnis</h2>
@@ -750,22 +763,25 @@ document.getElementById('resetModeBtn').addEventListener('click', ()=>{
     renderBotList(); renderModeTabs(); renderProfileTable(); renderRecords(); renderHistory();
   }
 });
-document.getElementById('wallModeBtn').addEventListener('click', ()=>{
+const wallModeIndicatorEl = document.getElementById('wallModeIndicator');
+const wallModeIndicatorTextEl = document.getElementById('wallModeIndicatorText');
+function setWallMode(on){
   if(!state || state.over) return;
-  state.wallMode = !state.wallMode;
-  const btn = document.getElementById('wallModeBtn');
-  btn.classList.toggle('active', state.wallMode);
-  btn.textContent = '🧱 Mauer-Modus: ' + (state.wallMode ? 'AN' : 'AUS');
+  state.wallMode = on;
+  wallModeIndicatorEl.classList.toggle('active', state.wallMode);
+  wallModeIndicatorTextEl.textContent = '🧱 Mauer-Modus: ' + (state.wallMode ? 'AN' : 'AUS');
   render();
-});
+}
+function toggleWallMode(){
+  if(!state || state.over) return;
+  setWallMode(!state.wallMode);
+}
+wallModeIndicatorEl.addEventListener('click', toggleWallMode);
 document.getElementById('autoMode').addEventListener('change', function(){
   const on = this.checked;
   FOREVER_CONFIG.enabled = on;
   FOREVER_CONFIG.lastActive = Date.now();
   persistForeverConfig();
-  const humanCb = document.getElementById('humanPlays');
-  if(on){ humanCb.checked=false; }
-  humanCb.disabled = on;
   document.getElementById('startBtn').disabled = on;
   document.getElementById('selAll').disabled = on;
   document.getElementById('selNone').disabled = on;
@@ -909,6 +925,7 @@ function startGame(){
   render();
   updateLeaderboard();
   updateTurnInfo();
+  updateWallModeIndicatorVisibility();
   if(state.players.length===2) renderH2HBar(state.modeKey, state.players[0].key, state.players[1].key);
   else document.getElementById('h2hBar').style.display='none';
   startAnimLoop();
@@ -916,10 +933,23 @@ function startGame(){
   closeSidebarIfNarrow();
 }
 
-/* ============================ Vollzufalls-Dauerlauf ============================ */
+/* ============================ Vollzufalls-Dauerlauf ============================
+   Wenn "Ich spiele mit" aktiv ist, nimmt der Mensch (bzw. beide lokalen Spieler
+   bei aktivem 2.-Spieler-Schalter) ganz normal an jeder zufällig gewürfelten
+   Dauerlauf-Partie teil — Feldgröße, Modus-Kombination und Bot-Auswahl bleiben
+   dabei exakt genauso zufällig wie im reinen Zuschauer-Dauerlauf. */
 function randomForeverConfig(){
-  const n = 2 + Math.floor(Math.random()*9); // 2..10 Bots
-  const chosen = [...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,n);
+  const humanPlaysNow = document.getElementById('humanPlays').checked;
+  const player2Now = humanPlaysNow && document.getElementById('player2Enabled').checked;
+  const humanCount = humanPlaysNow ? (player2Now ? 2 : 1) : 0;
+  // Bot-Anzahl bleibt im gewohnten 2..10-Gesamtrahmen, abzüglich der Menschen,
+  // aber immer mindestens 1 Bot, damit auch bei 2 menschlichen Spielern noch
+  // mindestens ein Gegner mitspielt.
+  const totalMin = Math.max(2, humanCount+1);
+  const totalMax = 10;
+  const total = totalMin + Math.floor(Math.random()*(totalMax-totalMin+1));
+  const botCount = Math.max(1, total-humanCount);
+  const chosen = [...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,botCount);
   const size = [9,11,13,15,17][Math.floor(Math.random()*5)];
   const wallExpire = Math.random()<0.25;
   const unlimitedWalls = !wallExpire && Math.random()<0.15;
@@ -957,26 +987,39 @@ function foreverCfgFromRandom(rc, botDelay, themeKey){
   return c;
 }
 function startForeverLiveGame(){
-  document.getElementById('humanPlays').checked = false;
   const rc = randomForeverConfig();
   selectedBots.clear();
   rc.chosenIds.forEach(id=>selectedBots.add(id));
   renderBotList();
-  const participants = rc.chosenIds.map(id=>{
+
+  const humanPlaysNow = document.getElementById('humanPlays').checked;
+  const player2Now = humanPlaysNow && document.getElementById('player2Enabled').checked;
+  const participants = [];
+  if(humanPlaysNow && player2Now){
+    participants.push({key:'human', name:DISPLAY_NAMES.human, human:true, humanIndex:0, bot:null});
+    participants.push({key:'human2', name:DISPLAY_NAMES.human2, human:true, humanIndex:1, bot:null});
+  } else if(humanPlaysNow){
+    const soloKey = document.getElementById('soloProfileSelect').value;
+    participants.push({key:soloKey, name:DISPLAY_NAMES[soloKey], human:true, humanIndex:0, bot:null});
+  }
+  rc.chosenIds.forEach(id=>{
     const b = BOT_ROSTER.find(x=>x.id===id);
-    return {key:b.id, name:b.name+' '+b.emoji, human:false, bot:b};
+    participants.push({key:b.id, name:b.name+' '+b.emoji, human:false, bot:b});
   });
+
   const themeKey = document.getElementById('theme').value;
   cfg = foreverCfgFromRandom(rc, +document.getElementById('botDelay').value, themeKey);
 
   if(state && state.timer) clearTimeout(state.timer);
   state = buildState(cfg, participants);
   document.getElementById('winOverlay').classList.remove('show');
-  showMsg('🌐 Vollzufall: '+modeLabel(state.modeKey)+' · '+participants.length+' Bots · '+rc.size+'×'+rc.size);
+  const who = humanPlaysNow ? ' · du spielst mit' : ' · Zuschauer-Modus';
+  showMsg('🌐 Vollzufall: '+modeLabel(state.modeKey)+' · '+participants.length+' Teilnehmer · '+rc.size+'×'+rc.size+who);
   resizeCanvas();
   render();
   updateLeaderboard();
   updateTurnInfo();
+  updateWallModeIndicatorVisibility();
   if(state.players.length===2) renderH2HBar(state.modeKey, state.players[0].key, state.players[1].key);
   else document.getElementById('h2hBar').style.display='none';
   startAnimLoop();
@@ -984,45 +1027,6 @@ function startForeverLiveGame(){
   FOREVER_CONFIG.lastActive = Date.now();
   persistForeverConfig();
 }
-
-/* ============================ Zufalls-Duell (Du vs. 1 Zufalls-Bot) ============================
-   Funktioniert wie der Vollzufalls-Dauerlauf (zufällige Feldgröße + zufällige
-   Modus-Kombination aus allen Spielmodi), aber statt Bot-vs-Bot spielst DU
-   gegen genau einen zufällig gewählten Bot. */
-function startRandomDuel(){
-  if(document.getElementById('autoMode').checked){
-    showMsg('Bitte zuerst den 24/7-Dauerlauf ausschalten.');
-    return;
-  }
-  const bot = BOT_ROSTER[Math.floor(Math.random()*BOT_ROSTER.length)];
-  const rc = randomForeverConfig();
-  const themeKey = document.getElementById('theme').value;
-  cfg = foreverCfgFromRandom(rc, +document.getElementById('botDelay').value, themeKey);
-
-  document.getElementById('humanPlays').checked = true;
-  document.getElementById('player2Enabled').checked = false;
-  const soloKey = document.getElementById('soloProfileSelect').value;
-  selectedBots.clear(); selectedBots.add(bot.id); renderBotList();
-
-  const participants = [
-    {key:soloKey, name:DISPLAY_NAMES[soloKey], human:true, humanIndex:0, bot:null},
-    {key:bot.id, name:bot.name+' '+bot.emoji, human:false, bot}
-  ];
-
-  if(state && state.timer) clearTimeout(state.timer);
-  state = buildState(cfg, participants);
-  document.getElementById('winOverlay').classList.remove('show');
-  showMsg('🎲 Zufalls-Duell gegen '+bot.name+' · '+modeLabel(state.modeKey)+' · '+rc.size+'×'+rc.size);
-  resizeCanvas();
-  render();
-  updateLeaderboard();
-  updateTurnInfo();
-  renderH2HBar(state.modeKey, state.players[0].key, state.players[1].key);
-  startAnimLoop();
-  scheduleNextTurn();
-  closeSidebarIfNarrow();
-}
-document.getElementById('randomDuelBtn').addEventListener('click', startRandomDuel);
 
 function buildState(cfgArg, participants){
   const size = cfgArg.size;
@@ -1194,6 +1198,7 @@ function advanceTurn(){
     if(cfg.chaosWalls) maybeSpawnChaosWall();
   }
   updateTurnInfo();
+  updateWallModeIndicatorVisibility();
   render();
   if(checkGameEnd()) return;
   scheduleNextTurn();
@@ -1427,7 +1432,10 @@ function endGame(){
   renderBotList();
 }
 
-/* ============================ Headless-Simulation (Nachholen verpasster Partien) ============================ */
+/* ============================ Headless-Simulation (Nachholen verpasster Partien) ============================
+   Verpasste Partien werden immer rein mit Bots nachsimuliert (auch wenn "Ich
+   spiele mit" aktuell an ist) — ein Mensch kann bei einem Schnelldurchlauf im
+   Hintergrund naturgemäß nicht mitspielen. */
 function simBotTurn(p){
   const {dist} = bfsToGoal(p, p.r, p.c);
   const moves = legalMoves(p);
@@ -1490,7 +1498,23 @@ async function runCatchUpIfNeeded(){
     function chunk(){
       const end = Math.min(estGames, done+15);
       for(; done<end; done++){
-        const rc = randomForeverConfig();
+        // Nachholen: immer reines Bot-Feld (2..10 Bots), unabhängig vom
+        // aktuellen "Ich spiele mit"-Schalter.
+        const n = 2 + Math.floor(Math.random()*9);
+        const chosen = [...BOT_ROSTER].sort(()=>Math.random()-0.5).slice(0,n);
+        const size = [9,11,13,15,17][Math.floor(Math.random()*5)];
+        const wallExpire = Math.random()<0.25;
+        const unlimitedWalls = !wallExpire && Math.random()<0.15;
+        const rc = {
+          chosenIds: chosen.map(b=>b.id), size,
+          wallsPerPlayer: 2+Math.floor(Math.random()*9),
+          unlimitedWalls, wallExpire,
+          wallExpireRounds: 4+Math.floor(Math.random()*15),
+          fogMode: Math.random()<0.3, fogRadius: 2+Math.floor(Math.random()*5),
+          doubleStep: Math.random()<0.3, teamMode: Math.random()<0.3,
+          wanderGoal: Math.random()<0.3, wanderGoalRounds: 3+Math.floor(Math.random()*12),
+          turboMode: Math.random()<0.25, chaosWalls: Math.random()<0.25,
+        };
         const participants = rc.chosenIds.map(id=>{
           const b = BOT_ROSTER.find(x=>x.id===id);
           return {key:b.id, name:b.name+' '+b.emoji, human:false, bot:b};
@@ -1703,6 +1727,14 @@ canvas.addEventListener('click',(ev)=>{
   const c=Math.floor(x/cs), r=Math.floor(y/cs);
   if(legalMoves(p).some(m=>m[0]===r && m[1]===c)){
     movePlayer(p,r,c);
+    if(cfg.doubleStep && !p.finished && state.stepsTaken<1){
+      state.stepsTaken = 1;
+      updateLeaderboard();
+      updateTurnInfo();
+      render();
+      showMsg('Zweiter Schritt möglich — nochmal klicken oder Zug beenden.');
+      return;
+    }
     updateLeaderboard();
     advanceTurn();
   }
@@ -1721,7 +1753,7 @@ document.addEventListener('keydown',(e)=>{
   // 'w' toggles wall-mode for player 1 (humanIndex 0), but is "move up" (WASD)
   // for a local player 2 (humanIndex 1) — disambiguated by whose turn it is.
   if((e.key==='w' || e.key==='W') && p.humanIndex!==1){
-    document.getElementById('wallModeBtn').click();
+    toggleWallMode();
     return;
   }
   if(state.wallMode) return;
@@ -1739,12 +1771,31 @@ document.addEventListener('keydown',(e)=>{
   if(!target) target = moves.find(m=> (dr!==0 && Math.sign(m[0]-p.r)===dr) || (dc!==0 && Math.sign(m[1]-p.c)===dc));
   if(target){
     movePlayer(p,target[0],target[1]);
+    if(cfg.doubleStep && !p.finished && state.stepsTaken<1){
+      state.stepsTaken = 1;
+      updateLeaderboard();
+      updateTurnInfo();
+      render();
+      showMsg('Zweiter Schritt möglich — nochmal Richtung drücken oder Zug beenden.');
+      return;
+    }
     updateLeaderboard();
     advanceTurn();
   }
 });
 
 /* ============================ HUD ============================ */
+function updateWallModeIndicatorVisibility(){
+  if(SIM_SILENT) return;
+  if(!state || state.over){ wallModeIndicatorEl.hidden = true; return; }
+  const p = currentPlayer();
+  const show = !!(p && p.human);
+  wallModeIndicatorEl.hidden = !show;
+  if(show){
+    wallModeIndicatorEl.classList.toggle('active', !!state.wallMode);
+    wallModeIndicatorTextEl.textContent = '🧱 Mauer-Modus: ' + (state.wallMode ? 'AN' : 'AUS');
+  }
+}
 function updateTurnInfo(){
   if(SIM_SILENT) return;
   const el = document.getElementById('turnInfo');
@@ -1811,7 +1862,6 @@ window.addEventListener('load', async ()=>{
 
   const on = !!FOREVER_CONFIG.enabled;
   document.getElementById('autoMode').checked = on;
-  document.getElementById('humanPlays').disabled = on;
   document.getElementById('startBtn').disabled = on;
   ['selAll','selNone','sel5','sel10','sel19'].forEach(id=>document.getElementById(id).disabled = on);
 
