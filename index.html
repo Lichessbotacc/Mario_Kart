@@ -16,13 +16,13 @@
     font-family:'Segoe UI',Roboto,Arial,sans-serif;
     background:radial-gradient(circle at 20% 20%, var(--bg2), var(--bg1) 60%),
                radial-gradient(circle at 80% 80%, var(--bg3), var(--bg1) 60%);
-    color:var(--text); min-height:100vh; display:flex; overflow:hidden;
+    color:var(--text); min-height:100vh; min-height:100dvh; display:flex; overflow:hidden;
   }
   #sidebar{
     width:340px; min-width:300px; max-width:360px;
     background:var(--panel); backdrop-filter:blur(10px);
     padding:14px; overflow-y:auto; border-right:1px solid #ffffff22; z-index:5;
-    height:100vh;
+    height:100vh; height:100dvh;
   }
   #sidebar h1{ font-size:21px; margin:0 0 2px 0;
     background:linear-gradient(90deg,var(--accent),var(--accent2));
@@ -54,14 +54,14 @@
   .botMeta span{font-size:10.5px; color:var(--muted);}
   .botElo{font-size:11px; color:var(--accent); font-weight:700;}
   #legend{font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:10px;}
-  #main{flex:1; position:relative; display:flex; flex-direction:column; min-width:0; height:100vh; overflow:hidden;}
+  #main{flex:1; position:relative; display:flex; flex-direction:column; min-width:0; height:100vh; height:100dvh; overflow:hidden; min-height:0;}
   #topbar{ display:flex; align-items:center; justify-content:space-between; padding:6px 16px; background:#00000033; z-index:4; flex-wrap:wrap; gap:6px; flex-shrink:0;}
   #turnInfo{font-size:15px; font-weight:600;}
   #turnInfo .dot{display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:8px; vertical-align:middle; box-shadow:0 0 10px 2px currentColor;}
   #leaderboard{display:flex; gap:6px; flex-wrap:wrap; max-width:60%; justify-content:flex-end;}
   .lb-chip{ display:flex; align-items:center; gap:5px; background:#ffffff14; padding:3px 8px; border-radius:20px; font-size:11px;}
   .lb-chip .swatch{width:9px; height:9px; border-radius:50%;}
-  #canvasWrap{flex:1; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:10px; min-height:0; min-width:0;}
+  #canvasWrap{flex:1 1 auto; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; padding:10px; min-height:0; min-width:0;}
   canvas{background:#12102a; border-radius:16px; box-shadow:0 20px 60px #00000066, inset 0 0 0 1px #ffffff1a; flex-shrink:1; max-width:100%; max-height:100%;}
   #msg{ position:absolute; top:14px; left:50%; transform:translateX(-50%); background:#000000aa; padding:8px 18px; border-radius:20px; font-size:13px; pointer-events:none; opacity:0; transition:opacity .3s ease; z-index:6; max-width:80%; text-align:center;}
   #msg.show{opacity:1;}
@@ -98,7 +98,7 @@
   @media (max-width:1180px){
     #sidebarToggle, #sidebarClose{display:inline-flex; align-items:center; justify-content:center;}
     #sidebar{
-      position:fixed; top:0; left:0; height:100vh; width:88%; max-width:380px;
+      position:fixed; top:0; left:0; height:100vh; height:100dvh; width:88%; max-width:380px;
       transform:translateX(-105%); transition:transform .28s ease; z-index:40;
       box-shadow:12px 0 50px #000000cc; border-right:1px solid #ffffff22;
     }
@@ -107,7 +107,7 @@
       display:none; position:fixed; inset:0; background:#000000aa; z-index:35; backdrop-filter:blur(2px);
     }
     #sidebarBackdrop.show{ display:block; }
-    #main{ height:100vh; }
+    #main{ height:100vh; height:100dvh; }
     input[type=range]{ height:30px; }
     .row input[type=checkbox]{ width:22px !important; height:22px !important; }
     button{ padding:11px 14px; font-size:13.5px; }
@@ -215,6 +215,16 @@
       <input type="checkbox" id="wanderGoal" style="flex:0; width:18px; height:18px;">
     </div>
     <div class="row"><label for="wanderGoalRounds">Ziel wechselt alle X Runden</label><input type="range" id="wanderGoalRounds" min="2" max="20" value="6"><output id="wanderGoalRoundsOut">6</output></div>
+
+    <div class="row"><label for="turboMode">⚡ Turbo (weniger Mauern, doppelt so schnell)</label>
+      <input type="checkbox" id="turboMode" style="flex:0; width:18px; height:18px;">
+    </div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Jeder hat höchstens 2 Mauern und Bots ziehen doppelt so schnell — kurze, hektische Partien.</div>
+
+    <div class="row"><label for="chaosWalls">🎲 Chaos-Mauern</label>
+      <input type="checkbox" id="chaosWalls" style="flex:0; width:18px; height:18px;">
+    </div>
+    <div class="row" style="font-size:11px; color:var(--muted);">Am Anfang jeder neuen Runde erscheint mit 20% Chance eine zufällige neutrale Mauer, die niemandem gehört.</div>
   </div>
 
   <div class="group">
@@ -236,6 +246,7 @@
   </div>
 
   <button id="startBtn" class="btnPrimary" style="width:100%;">🎮 Match starten</button>
+  <button id="randomDuelBtn" class="btnGhost" style="width:100%; margin-top:8px;">🎲 Zufalls-Duell (Du vs. Zufalls-Bot)</button>
   <button id="wallModeBtn" class="btnGhost" style="width:100%; margin-top:8px;">🧱 Mauer-Modus: AUS</button>
   <button id="pauseBtn" class="btnGhost" style="width:100%; margin-top:8px;">⏸ Pause (Bots)</button>
   <button id="profileBtn" class="btnGhost" style="width:100%; margin-top:8px;">📊 Profile &amp; Elo</button>
@@ -366,6 +377,8 @@ const MODE_FLAG_DEFS = [
   {key:'team',   label:'🤝 Team',       cfgFlag:'teamMode'},
   {key:'wander', label:'🔄 Wandernd',   cfgFlag:'wanderGoal'},
   {key:'expire', label:'🕐 Verfall',    cfgFlag:'wallExpire'},
+  {key:'turbo',  label:'⚡ Turbo',      cfgFlag:'turboMode'},
+  {key:'chaos',  label:'🎲 Chaos-Mauern', cfgFlag:'chaosWalls'},
 ];
 function getModeKey(c){
   const flags = MODE_FLAG_DEFS.filter(m=>c[m.cfgFlag]).map(m=>m.key).sort();
@@ -416,6 +429,18 @@ function freshProfile(name){
 }
 function eloTier(elo){
   if(elo>=1500) return '🏆'; if(elo>=1300) return '💎'; if(elo>=1150) return '🥇'; if(elo>=1000) return '🥈'; return '🥉';
+}
+// Medaille für die Rangliste: richtet sich nach der tatsächlichen TABELLEN-POSITION
+// (0=1.Platz, 1=2.Platz, 2=3.Platz) statt nach dem Elo-Wert — vorher bekamen alle
+// Plätze fälschlich dieselbe Elo-Tier-Medaille (meist 🥈, weil frische Profile alle
+// bei 1000 Elo starten und dicht beieinander liegen).
+function rankMedal(i, elo){
+  if(i===0) return '🥇';
+  if(i===1) return '🥈';
+  if(i===2) return '🥉';
+  if(elo>=1500) return '🏆';
+  if(elo>=1300) return '💎';
+  return '';
 }
 function getModeProfiles(modeKey){
   if(!PROFILES_BY_MODE[modeKey]){
@@ -786,7 +811,7 @@ function renderProfileTable(){
     const isHuman = p.key==='human' || p.key==='human2';
     const streakTxt = p.streak>0 ? '🔥'+p.streak : '—';
     return `<tr style="${isHuman?'color:var(--accent); font-weight:700;':''}">
-      <td>${i+1}</td><td>${eloTier(p.elo)} ${isHuman?'👤 ':''}${p.name}</td><td>${Math.round(p.elo)}</td>
+      <td>${i+1}</td><td>${rankMedal(i,p.elo)} ${isHuman?'👤 ':''}${p.name}</td><td>${Math.round(p.elo)}</td>
       <td>${p.games}</td><td>${p.wins}</td><td>${winrate}</td><td>${avgRank}</td><td>${p.top3}</td><td>${streakTxt}</td>
     </tr>`;
   }).join('');
@@ -864,9 +889,15 @@ function startGame(){
     teamMode: document.getElementById('teamMode').checked,
     wanderGoal: document.getElementById('wanderGoal').checked,
     wanderGoalRounds: +document.getElementById('wanderGoalRounds').value,
+    turboMode: document.getElementById('turboMode').checked,
+    chaosWalls: document.getElementById('chaosWalls').checked,
     botDelay: +document.getElementById('botDelay').value,
     theme: THEMES[themeKey]
   };
+  if(cfg.turboMode){
+    cfg.wallsPerPlayer = Math.min(cfg.wallsPerPlayer, 2);
+    cfg.botDelay = Math.max(30, Math.round(cfg.botDelay/2));
+  }
 
   if(state && state.timer) clearTimeout(state.timer);
   state = buildState(cfg, participants);
@@ -905,17 +936,25 @@ function randomForeverConfig(){
     teamMode: Math.random()<0.3,
     wanderGoal: Math.random()<0.3,
     wanderGoalRounds: 3+Math.floor(Math.random()*12),
+    turboMode: Math.random()<0.25,
+    chaosWalls: Math.random()<0.25,
   };
 }
 function foreverCfgFromRandom(rc, botDelay, themeKey){
-  return {
+  const c = {
     size: rc.size, wallsPerPlayer: rc.wallsPerPlayer, unlimitedWalls: rc.unlimitedWalls,
     wallExpire: rc.wallExpire, wallExpireRounds: rc.wallExpireRounds,
     fogMode: rc.fogMode, fogRadius: rc.fogRadius,
     doubleStep: rc.doubleStep, teamMode: rc.teamMode,
     wanderGoal: rc.wanderGoal, wanderGoalRounds: rc.wanderGoalRounds,
+    turboMode: rc.turboMode, chaosWalls: rc.chaosWalls,
     botDelay: botDelay, theme: THEMES[themeKey]
   };
+  if(c.turboMode){
+    c.wallsPerPlayer = Math.min(c.wallsPerPlayer, 2);
+    c.botDelay = Math.max(30, Math.round(c.botDelay/2));
+  }
+  return c;
 }
 function startForeverLiveGame(){
   document.getElementById('humanPlays').checked = false;
@@ -945,6 +984,45 @@ function startForeverLiveGame(){
   FOREVER_CONFIG.lastActive = Date.now();
   persistForeverConfig();
 }
+
+/* ============================ Zufalls-Duell (Du vs. 1 Zufalls-Bot) ============================
+   Funktioniert wie der Vollzufalls-Dauerlauf (zufällige Feldgröße + zufällige
+   Modus-Kombination aus allen Spielmodi), aber statt Bot-vs-Bot spielst DU
+   gegen genau einen zufällig gewählten Bot. */
+function startRandomDuel(){
+  if(document.getElementById('autoMode').checked){
+    showMsg('Bitte zuerst den 24/7-Dauerlauf ausschalten.');
+    return;
+  }
+  const bot = BOT_ROSTER[Math.floor(Math.random()*BOT_ROSTER.length)];
+  const rc = randomForeverConfig();
+  const themeKey = document.getElementById('theme').value;
+  cfg = foreverCfgFromRandom(rc, +document.getElementById('botDelay').value, themeKey);
+
+  document.getElementById('humanPlays').checked = true;
+  document.getElementById('player2Enabled').checked = false;
+  const soloKey = document.getElementById('soloProfileSelect').value;
+  selectedBots.clear(); selectedBots.add(bot.id); renderBotList();
+
+  const participants = [
+    {key:soloKey, name:DISPLAY_NAMES[soloKey], human:true, humanIndex:0, bot:null},
+    {key:bot.id, name:bot.name+' '+bot.emoji, human:false, bot}
+  ];
+
+  if(state && state.timer) clearTimeout(state.timer);
+  state = buildState(cfg, participants);
+  document.getElementById('winOverlay').classList.remove('show');
+  showMsg('🎲 Zufalls-Duell gegen '+bot.name+' · '+modeLabel(state.modeKey)+' · '+rc.size+'×'+rc.size);
+  resizeCanvas();
+  render();
+  updateLeaderboard();
+  updateTurnInfo();
+  renderH2HBar(state.modeKey, state.players[0].key, state.players[1].key);
+  startAnimLoop();
+  scheduleNextTurn();
+  closeSidebarIfNarrow();
+}
+document.getElementById('randomDuelBtn').addEventListener('click', startRandomDuel);
 
 function buildState(cfgArg, participants){
   const size = cfgArg.size;
@@ -1113,6 +1191,7 @@ function advanceTurn(){
     state.round++;
     if(cfg.wallExpire) expireOldWalls();
     if(cfg.wanderGoal && state.round - state.lastGoalMoveRound >= cfg.wanderGoalRounds) relocateGoal();
+    if(cfg.chaosWalls) maybeSpawnChaosWall();
   }
   updateTurnInfo();
   render();
@@ -1135,6 +1214,26 @@ function relocateGoal(){
   playBeep(520,0.12); setTimeout(()=>playBeep(700,0.12),120);
 }
 
+// 🎲 Chaos-Mauern: mit 20% Chance pro neuer Runde eine zufällige, neutrale
+// Mauer (gehört niemandem, kostet niemandem ein Kontingent) — nur wenn danach
+// noch alle Spieler einen Weg zu ihrem Ziel haben.
+function maybeSpawnChaosWall(){
+  if(Math.random()>=0.2) return;
+  const size = state.size;
+  for(let tries=0; tries<12; tries++){
+    const type = Math.random()<0.5 ? 'h' : 'v';
+    const r = Math.floor(Math.random()*(size-1));
+    const c = Math.floor(Math.random()*(size-1));
+    const key = r+','+c;
+    const set = type==='h' ? state.hWalls : state.vWalls;
+    if(set.has(key)) continue;
+    set.add(key);
+    if(!allPlayersHavePath()){ set.delete(key); continue; }
+    showMsg('🎲 Eine zufällige Chaos-Mauer ist erschienen!');
+    playBeep(220,0.1);
+    return;
+  }
+}
 function scheduleNextTurn(){
   clearTimeout(state.timer);
   if(state.paused) return;
@@ -1213,8 +1312,25 @@ function attemptBlockingWall(self, rival){
   const r=Math.min(r1,r2); return tryPlaceWall('h', r, c1, self.id);
 }
 
+const MAX_ROUNDS = 300;
 function checkGameEnd(){
   if(state.over) return true;
+  // Sicherheitsnetz: falls nach 300 Runden noch niemand das Ziel erreicht hat
+  // (z.B. bei "Wanderndes Ziel" oder sehr großen Feldern), wird automatisch
+  // beendet — Rangfolge nach aktueller Distanz zum Ziel (kürzeste Distanz zuerst).
+  if(state.round >= MAX_ROUNDS){
+    const remaining = state.players.filter(p=>!p.finished && p.alive);
+    remaining
+      .sort((a,b)=> bfsToGoal(a,a.r,a.c).dist - bfsToGoal(b,b.r,b.c).dist)
+      .forEach(p=>{
+        p.finished = true;
+        state.finishOrder.push(p.id);
+        p.rank = state.finishOrder.length;
+      });
+    showMsg('⏱️ Rundenlimit (300) erreicht — Spiel automatisch beendet.');
+    endGame();
+    return true;
+  }
   if(cfg.teamMode){
     const finisher = state.players.find(p=>p.finished);
     if(finisher){
@@ -1346,6 +1462,7 @@ function simAdvanceTurn(){
     state.round++;
     if(cfg.wallExpire) expireOldWalls();
     if(cfg.wanderGoal && state.round - state.lastGoalMoveRound >= cfg.wanderGoalRounds) relocateGoal();
+    if(cfg.chaosWalls) maybeSpawnChaosWall();
   }
 }
 function simulateFullGame(participants, simCfg){
@@ -1400,6 +1517,13 @@ function resizeCanvas(){
   canvas.width=s; canvas.height=s;
 }
 window.addEventListener('resize', ()=>{ if(state){ resizeCanvas(); render(); }});
+window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ if(state){ resizeCanvas(); render(); } }, 60); });
+// iPad/iOS Safari: die Adressleiste ein-/ausblenden ändert die sichtbare Höhe,
+// ohne dass immer ein normales 'resize' ausgelöst wird — visualViewport fängt das ab,
+// damit das Spielfeld nie teilweise unter/hinter der Safari-UI verschwindet.
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize', ()=>{ if(state){ resizeCanvas(); render(); } });
+}
 function cellSize(){ return canvas.width/state.size; }
 
 function drawGoalZone(){
