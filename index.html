@@ -83,13 +83,39 @@
   #profileTableWrap{max-height:40vh; overflow-y:auto; width:100%; max-width:700px;}
   #modeTabs{width:100%; max-width:700px; display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; justify-content:center;}
   #modeTabs button{padding:6px 10px; font-size:11.5px;}
+  #recordsPanel{width:100%; max-width:700px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-bottom:16px;}
+  .recTile{background:#ffffff0d; border:1px solid #ffffff1a; border-radius:10px; padding:10px 12px; font-size:11px; color:var(--muted); display:flex; flex-direction:column; gap:3px; align-items:flex-start; text-align:left;}
+  .recTile .recIcon{font-size:18px;}
+  .recTile b{font-size:13px; color:var(--text);}
   #historyWrap{width:100%; max-width:700px; margin-top:6px;}
   #historyWrap h3{font-size:12.5px; text-transform:uppercase; color:var(--accent2); margin-bottom:8px;}
   #historyList{font-size:12px; color:var(--muted); max-height:160px; overflow-y:auto;}
-  @media (max-width:820px){
-    body{flex-direction:column;}
-    #sidebar{width:100%; max-width:none; height:44vh; order:2; border-right:none; border-top:1px solid #ffffff22;}
-    #main{order:1; height:56vh;}
+  #sidebarToggle, #sidebarClose{display:none;}
+  #sidebarBackdrop{display:none;}
+  /* Tablet/iPad & Handy: Sidebar wird zur ausklappbaren Schublade, Spielfeld bleibt
+     immer vollflächig sichtbar — deutlich angenehmer auf einem iPad als eine
+     gequetschte Zwei-Spalten- oder Stapel-Ansicht. */
+  @media (max-width:1180px){
+    #sidebarToggle, #sidebarClose{display:inline-flex; align-items:center; justify-content:center;}
+    #sidebar{
+      position:fixed; top:0; left:0; height:100vh; width:88%; max-width:380px;
+      transform:translateX(-105%); transition:transform .28s ease; z-index:40;
+      box-shadow:12px 0 50px #000000cc; border-right:1px solid #ffffff22;
+    }
+    #sidebar.open{ transform:translateX(0); }
+    #sidebarBackdrop{
+      display:none; position:fixed; inset:0; background:#000000aa; z-index:35; backdrop-filter:blur(2px);
+    }
+    #sidebarBackdrop.show{ display:block; }
+    #main{ height:100vh; }
+    input[type=range]{ height:30px; }
+    .row input[type=checkbox]{ width:22px !important; height:22px !important; }
+    button{ padding:11px 14px; font-size:13.5px; }
+    .miniRow button{ padding:11px 8px; font-size:12.5px; }
+    #turnInfo{ font-size:14px; }
+  }
+  @media (max-width:480px){
+    #sidebar{ width:94%; }
   }
   ::-webkit-scrollbar{width:8px;}
   ::-webkit-scrollbar-thumb{background:#ffffff33; border-radius:4px;}
@@ -97,8 +123,12 @@
 </head>
 <body>
 
+<div id="sidebarBackdrop"></div>
 <div id="sidebar">
-  <h1>Quoridor Arena</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Quoridor Arena</h1>
+    <button id="sidebarClose" class="btnGhost" style="padding:4px 12px; font-size:16px;">✕</button>
+  </div>
   <div class="sub">Elo-Ranking pro Modus · eigenes Bot-Roster · wähle deine Gegner oder lass Bots gegeneinander spielen</div>
 
   <div class="group">
@@ -225,6 +255,7 @@
 
 <div id="main">
   <div id="topbar">
+    <button id="sidebarToggle" class="btnGhost" style="padding:8px 12px; font-size:16px;">☰</button>
     <div id="turnInfo">Bereit</div>
     <button id="endTurnBtn" class="btnGhost" style="display:none;">✅ Zug beenden</button>
     <div id="leaderboard"></div>
@@ -251,9 +282,10 @@
       <h2>📊 Profile &amp; Elo-Rangliste</h2>
       <p>Wie bei einer Schach-Plattform: jedes Match verändert die Elo aller Teilnehmer — und jeder Spielmodus führt seine eigene, getrennte Rangliste.</p>
       <div id="modeTabs"></div>
+      <div id="recordsPanel"></div>
       <div id="profileTableWrap">
         <table>
-          <thead><tr><th>Rang</th><th>Name</th><th>Elo</th><th>Spiele</th><th>Siege</th><th>Siegquote</th><th>Ø Platz</th><th>Top3</th></tr></thead>
+          <thead><tr><th>Rang</th><th>Name</th><th>Elo</th><th>Spiele</th><th>Siege</th><th>Siegquote</th><th>Ø Platz</th><th>Top3</th><th>Serie</th></tr></thead>
           <tbody id="profileBody"></tbody>
         </table>
       </div>
@@ -283,27 +315,48 @@ const THEMES = {
   mono:   { bg:'#141414', grid:'#2b2b2b', wall:'#f5f5f5', highlight:'#00e5ff', palette:['#ffffff','#cfcfcf','#00e5ff','#ff5252','#ffca28','#66bb6a','#ab47bc','#ec407a','#7e57c2','#26a69a','#8d6e63','#78909c','#d4e157','#ffa726','#5c6bc0','#26c6da','#9ccc65','#ef5350','#ffee58','#42a5f5'] }
 };
 
-/* ============================ Bot-Roster (feste Persönlichkeiten) ============================ */
+/* ============================ Bot-Roster (feste Persönlichkeiten) ============================
+   `aggr`  = Basis-Wahrscheinlichkeit, in einem Zug eine Mauer statt zu ziehen (steuert, wie
+             "mauer-lastig" ein Bot wirklich spielt — passend zur Beschreibung).
+   `skill` = Basis-Wahrscheinlichkeit, den objektiv besten Zug zu wählen (steuert die
+             tatsächliche Spielstärke — passend zur Beschreibung).
+   `modeSkill` / `modeAggr` = Boni/Mali, die NUR aktiv sind, wenn der jeweilige Spielmodus
+             läuft. Damit gibt es Bots, die in einem Modus brillant und in einem anderen
+             richtig schwach sind — genau wie in der Beschreibung angekündigt. */
 const BOT_ROSTER = [
-  {id:'b_falke',    name:'Falke',        emoji:'🦅', style:'Rusher, kaum Mauern',     aggr:0.06, skill:0.95},
-  {id:'b_dachs',    name:'Der Dachs',    emoji:'🦡', style:'Defensiv, viele Mauern',  aggr:0.75, skill:0.65},
-  {id:'b_chaot',    name:'Chaot',        emoji:'🌀', style:'Unberechenbar',           aggr:0.30, skill:0.25},
-  {id:'b_professor',name:'Professor',    emoji:'🎓', style:'Fast perfekt, ruhig',     aggr:0.40, skill:0.97},
-  {id:'b_wall',     name:'Mauerbauer',   emoji:'🧱', style:'Blockiert extrem viel',   aggr:0.90, skill:0.55},
-  {id:'b_flitzer',  name:'Flitzer',      emoji:'⚡', style:'Ignoriert Mauern fast',   aggr:0.03, skill:0.80},
-  {id:'b_taktik',   name:'Taktiker',     emoji:'♟️', style:'Ausgewogen & clever',     aggr:0.45, skill:0.85},
-  {id:'b_schurke',  name:'Schurke',      emoji:'😈', style:'Fies, blockiert Führende',aggr:0.85, skill:0.70},
-  {id:'b_neuling',  name:'Neuling',      emoji:'🐣', style:'Spielt noch unsicher',    aggr:0.15, skill:0.35},
-  {id:'b_veteran',  name:'Veteran',      emoji:'🎖️', style:'Erfahren, solide',        aggr:0.55, skill:0.88},
-  {id:'b_schatten', name:'Schatten',     emoji:'🥷', style:'Schnell & sparsam',       aggr:0.20, skill:0.75},
-  {id:'b_baumeis',  name:'Baumeister',   emoji:'🏗️', style:'Baut früh eine Festung',  aggr:0.80, skill:0.60},
-  {id:'b_glueck',   name:'Glückspilz',   emoji:'🍀', style:'Sehr zufällig',           aggr:0.20, skill:0.20},
-  {id:'b_stratege', name:'Stratege',     emoji:'🧠', style:'Plant weit voraus',       aggr:0.50, skill:0.93},
-  {id:'b_rookie',   name:'Rookie',       emoji:'🆕', style:'Lernt noch',              aggr:0.10, skill:0.40},
-  {id:'b_wirbel',   name:'Wirbelwind',   emoji:'🌪️', style:'Aggressiv & schnell',     aggr:0.65, skill:0.78},
-  {id:'b_eisern',   name:'Der Eiserne',  emoji:'🛡️', style:'Extrem defensiv',         aggr:0.95, skill:0.72},
-  {id:'b_komet',    name:'Komet',        emoji:'☄️', style:'Reine Geschwindigkeit',   aggr:0.02, skill:0.90},
-  {id:'b_meister',  name:'Meister',      emoji:'👑', style:'Der stärkste Bot',        aggr:0.60, skill:0.98},
+  {id:'b_falke',    name:'Falke',        emoji:'🦅', style:'Rusher, kaum Mauern — extrem schnell, aber im Team-Modus planlos', aggr:0.04, skill:0.93, modeSkill:{team:-0.30}},
+  {id:'b_dachs',    name:'Der Dachs',    emoji:'🦡', style:'Defensiv, viele Mauern — liebt verfallende Mauern, hasst Doppelzüge', aggr:0.78, skill:0.62, modeSkill:{expire:0.15, doppel:-0.20}},
+  {id:'b_chaot',    name:'Chaot',        emoji:'🌀', style:'Unberechenbar — im Chaos des wandernden Ziels erstaunlich stark', aggr:0.32, skill:0.22, modeSkill:{wander:0.25}},
+  {id:'b_professor',name:'Professor',    emoji:'🎓', style:'Fast perfekt, ruhig — verliert im Nebel etwas den Überblick', aggr:0.38, skill:0.97, modeSkill:{fog:-0.12}},
+  {id:'b_wall',     name:'Mauerbauer',   emoji:'🧱', style:'Blockiert extrem viel — im Team unschlagbar, hasst Mauerverfall', aggr:0.92, skill:0.55, modeSkill:{team:0.18, expire:-0.25}, modeAggr:{expire:-0.15}},
+  {id:'b_flitzer',  name:'Flitzer',      emoji:'⚡', style:'Ignoriert Mauern fast — mit Doppelzug kaum zu stoppen', aggr:0.02, skill:0.80, modeSkill:{doppel:0.15}},
+  {id:'b_taktik',   name:'Taktiker',     emoji:'♟️', style:'Ausgewogen & clever — im Team-Modus besonders koordiniert', aggr:0.45, skill:0.85, modeSkill:{team:0.10}},
+  {id:'b_schurke',  name:'Schurke',      emoji:'😈', style:'Fies, blockiert Führende — egoistisch, im Team eine Katastrophe', aggr:0.87, skill:0.70, modeSkill:{team:-0.25, wander:0.10}},
+  {id:'b_neuling',  name:'Neuling',      emoji:'🐣', style:'Spielt noch unsicher — mit jeder Sonderregel überfordert', aggr:0.15, skill:0.35, modeSkill:{fog:-0.10, doppel:-0.08, wander:-0.08}},
+  {id:'b_veteran',  name:'Veteran',      emoji:'🎖️', style:'Erfahren, solide — kennt sich mit Mauerverfall & Wanderzielen aus', aggr:0.55, skill:0.86, modeSkill:{expire:0.10, wander:0.06}},
+  {id:'b_schatten', name:'Schatten',     emoji:'🥷', style:'Schnell & sparsam — meister des Nebels, im hellen Standardspiel normal', aggr:0.18, skill:0.72, modeSkill:{fog:0.22}},
+  {id:'b_baumeis',  name:'Baumeister',   emoji:'🏗️', style:'Baut früh eine Festung — Mauerverfall zerstört seine ganze Strategie', aggr:0.82, skill:0.60, modeSkill:{team:0.12, expire:-0.35}},
+  {id:'b_glueck',   name:'Glückspilz',   emoji:'🍀', style:'Sehr zufällig — beim Doppelzug völlig überfordert, beim Wanderziel Glückssträhnen', aggr:0.20, skill:0.20, modeSkill:{wander:0.22, doppel:-0.15}},
+  {id:'b_stratege', name:'Stratege',     emoji:'🧠', style:'Plant weit voraus — meistert Wanderziel und Doppelzug mühelos', aggr:0.50, skill:0.92, modeSkill:{wander:0.08, doppel:0.08}},
+  {id:'b_rookie',   name:'Rookie',       emoji:'🆕', style:'Lernt noch — konstant schwach, egal welcher Modus', aggr:0.10, skill:0.38},
+  {id:'b_wirbel',   name:'Wirbelwind',   emoji:'🌪️', style:'Aggressiv & schnell — mit Doppelzug ein Wirbelsturm', aggr:0.65, skill:0.76, modeSkill:{doppel:0.14}},
+  {id:'b_eisern',   name:'Der Eiserne',  emoji:'🛡️', style:'Extrem defensiv — perfekter Teamschild, aber hilflos bei Mauerverfall', aggr:0.95, skill:0.70, modeSkill:{team:0.20, expire:-0.22}},
+  {id:'b_komet',    name:'Komet',        emoji:'☄️', style:'Reine Geschwindigkeit — im Doppelzug kaum einzuholen, im Nebel orientierungslos', aggr:0.02, skill:0.88, modeSkill:{doppel:0.18, fog:-0.10}},
+  {id:'b_meister',  name:'Meister',      emoji:'👑', style:'Der stärkste Bot — überall solide stark, kein reiner Spezialist', aggr:0.58, skill:0.97, modeSkill:{fog:0.04, doppel:0.04, team:0.04, wander:0.04, expire:0.04}},
+  {id:'b_nebelgeist',name:'Nebelgeist',  emoji:'👻', style:'Fast unsichtbar schwach im Hellen — im Nebel ein wahrer Geist', aggr:0.30, skill:0.42, modeSkill:{fog:0.48}},
+  {id:'b_zwilling', name:'Zwilling',     emoji:'👯', style:'Blüht nur im Team-Modus auf, sonst eher mittelmäßig', aggr:0.40, skill:0.38, modeSkill:{team:0.48, doppel:-0.10}},
+  {id:'b_uhrmach',  name:'Uhrmacher',    emoji:'⏱️', style:'Perfektes Timing — Doppelzug-Spezialist, sonst durchschnittlich', aggr:0.35, skill:0.40, modeSkill:{doppel:0.52}},
+  {id:'b_nomade',   name:'Nomade',       emoji:'🐫', style:'Folgt jedem Ziel bereitwillig — Meister des wandernden Ziels', aggr:0.25, skill:0.38, modeSkill:{wander:0.50}},
+  {id:'b_recycler', name:'Recycler',     emoji:'♻️', style:'Baut ständig neu — liebt verfallende Mauern über alles', aggr:0.85, skill:0.38, modeSkill:{expire:0.50}},
+  {id:'b_eremit',   name:'Eremit',       emoji:'🏔️', style:'Absoluter Purist — im Standardspiel brillant, hasst jede Sonderregel', aggr:0.40, skill:0.95, modeSkill:{fog:-0.28, doppel:-0.28, team:-0.28, wander:-0.28, expire:-0.28}},
+  {id:'b_alptraum', name:'Alptraum',     emoji:'👹', style:'Im Nebel ein echter Albtraum, sonst harmlos und mittelmäßig', aggr:0.50, skill:0.32, modeSkill:{fog:0.55}},
+  {id:'b_statue',   name:'Statue',       emoji:'🗿', style:'Bewegt sich kaum, vermauert alles — bricht komplett bei Mauerverfall', aggr:0.97, skill:0.50, modeSkill:{expire:-0.32}, modeAggr:{expire:-0.20}},
+  {id:'b_rennmaus', name:'Rennmaus',     emoji:'🐭', style:'Winzig, aber wahnsinnig schnell und mauerscheu', aggr:0.02, skill:0.83, modeSkill:{doppel:0.10}},
+  {id:'b_doppelg',  name:'Doppelgänger', emoji:'🎭', style:'Kopiert gegnerische Taktik — besonders stark im Team', aggr:0.50, skill:0.52, modeSkill:{team:0.35}},
+  {id:'b_sturkopf', name:'Sturkopf',     emoji:'🐐', style:'Ignoriert neue Regeln komplett — spielt immer stur gleich', aggr:0.45, skill:0.62},
+  {id:'b_zauberer', name:'Zauberer',     emoji:'🧙', style:'Scheint das wandernde Ziel selbst zu manipulieren, gut im Nebel', aggr:0.35, skill:0.46, modeSkill:{wander:0.38, fog:0.14}},
+  {id:'b_frostwolf',name:'Frostwolf',    emoji:'🐺', style:'Jagt im Rudel — stark im Team, allein im Nebel überfordert', aggr:0.55, skill:0.58, modeSkill:{team:0.28, fog:-0.24}},
+  {id:'b_praktik',  name:'Praktikant',   emoji:'🧑‍💻', style:'Extrem unerfahren, lernt aber sichtlich bei Mauerverfall dazu', aggr:0.30, skill:0.24, modeSkill:{expire:0.28}},
 ];
 
 /* ============================ Modus-Schlüssel ============================ */
@@ -326,6 +379,29 @@ function modeLabel(key){
   }).join(' + ');
 }
 
+/* Effektive Spielstärke/Mauer-Vorliebe eines Bots im gerade aktiven Modus:
+   Basiswert + Summe aller aktiven Modus-Boni/Mali, geclamped auf [0.02, 0.99]. */
+function personaSkill(p, cfgCtx){
+  const persona = p.bot;
+  let s = persona ? persona.skill : 0.8;
+  if(persona && persona.modeSkill){
+    MODE_FLAG_DEFS.forEach(m=>{
+      if(cfgCtx[m.cfgFlag] && persona.modeSkill[m.key]) s += persona.modeSkill[m.key];
+    });
+  }
+  return Math.max(0.02, Math.min(0.99, s));
+}
+function personaAggr(p, cfgCtx){
+  const persona = p.bot;
+  let a = persona ? persona.aggr : 0.4;
+  if(persona && persona.modeAggr){
+    MODE_FLAG_DEFS.forEach(m=>{
+      if(cfgCtx[m.cfgFlag] && persona.modeAggr[m.key]) a += persona.modeAggr[m.key];
+    });
+  }
+  return Math.max(0.01, Math.min(0.99, a));
+}
+
 /* ============================ Persistente Daten (window.storage) ============================ */
 let PROFILES_BY_MODE = {};   // { modeKey: { playerKey: {name,elo,games,wins,top3,rankSum} } }
 let H2H_BY_MODE = {};        // { modeKey: { "keyA__keyB": {names,wins} } }
@@ -336,7 +412,10 @@ let currentModeTab = 'standard';
 let SIM_SILENT = false; // true while headlessly fast-forwarding missed games
 
 function freshProfile(name){
-  return { name, elo:1000, games:0, wins:0, top3:0, rankSum:0 };
+  return { name, elo:1000, games:0, wins:0, top3:0, rankSum:0, streak:0, bestStreak:0, fastestWin:null, wallsPlaced:0, biggestUpset:null };
+}
+function eloTier(elo){
+  if(elo>=1500) return '🏆'; if(elo>=1300) return '💎'; if(elo>=1150) return '🥇'; if(elo>=1000) return '🥈'; return '🥉';
 }
 function getModeProfiles(modeKey){
   if(!PROFILES_BY_MODE[modeKey]){
@@ -347,17 +426,42 @@ function getModeProfiles(modeKey){
   return PROFILES_BY_MODE[modeKey];
 }
 
+// Triple-fallback persistence: Artefakt-Storage -> localStorage -> reiner
+// Arbeitsspeicher. Wichtig: ein einfaches ".catch()" reicht NICHT, wenn
+// window.storage in der jeweiligen Umgebung gar nicht existiert (z.B. beim
+// direkten Öffnen der heruntergeladenen HTML-Datei) — dann wirft schon der
+// Zugriff auf ".set"/".get" selbst einen synchronen Fehler, der alles danach
+// in der aufrufenden Funktion (z.B. endGame) stillschweigend abbricht. Daher
+// wird hier alles sauber try/catch-gekapselt und fällt automatisch zurück.
+const MEM_STORE = {};
+function hasArtifactStorage(){
+  return typeof window!=='undefined' && !!window.storage && typeof window.storage.get==='function' && typeof window.storage.set==='function';
+}
+async function storageGetRaw(key){
+  if(hasArtifactStorage()){
+    try{ const r = await window.storage.get(key, false); return r ? r.value : null; }catch(e){ /* fällt weiter durch */ }
+  }
+  try{ const v = localStorage.getItem(key); if(v!=null) return v; }catch(e){}
+  return MEM_STORE[key]!=null ? MEM_STORE[key] : null;
+}
+async function storageSetRaw(key, value){
+  MEM_STORE[key] = value; // immer als letzte Absicherung im Speicher halten
+  if(hasArtifactStorage()){
+    try{ await window.storage.set(key, value, false); return; }catch(e){ /* fällt weiter durch */ }
+  }
+  try{ localStorage.setItem(key, value); }catch(e){ /* z.B. Storage im sandboxed iframe blockiert — MEM_STORE trägt weiter */ }
+}
 async function storageGetJSON(key, fallback){
   try{
-    const r = await window.storage.get(key, false);
-    return r && r.value ? JSON.parse(r.value) : fallback;
+    const raw = await storageGetRaw(key);
+    return raw ? JSON.parse(raw) : fallback;
   }catch(e){ return fallback; }
 }
-function persistProfiles(){ window.storage.set('profilesByMode', JSON.stringify(PROFILES_BY_MODE), false).catch(()=>{}); }
-function persistH2H(){ window.storage.set('h2hByMode', JSON.stringify(H2H_BY_MODE), false).catch(()=>{}); }
-function persistHistory(){ window.storage.set('matchHistory', JSON.stringify(HISTORY), false).catch(()=>{}); }
-function persistForeverConfig(){ window.storage.set('foreverConfig', JSON.stringify(FOREVER_CONFIG), false).catch(()=>{}); }
-function persistDisplayNames(){ window.storage.set('displayNames', JSON.stringify(DISPLAY_NAMES), false).catch(()=>{}); }
+function persistProfiles(){ storageSetRaw('profilesByMode', JSON.stringify(PROFILES_BY_MODE)).catch(()=>{}); }
+function persistH2H(){ storageSetRaw('h2hByMode', JSON.stringify(H2H_BY_MODE)).catch(()=>{}); }
+function persistHistory(){ storageSetRaw('matchHistory', JSON.stringify(HISTORY)).catch(()=>{}); }
+function persistForeverConfig(){ storageSetRaw('foreverConfig', JSON.stringify(FOREVER_CONFIG)).catch(()=>{}); }
+function persistDisplayNames(){ storageSetRaw('displayNames', JSON.stringify(DISPLAY_NAMES)).catch(()=>{}); }
 
 async function loadAllData(){
   PROFILES_BY_MODE = await storageGetJSON('profilesByMode', {});
@@ -389,16 +493,46 @@ function computeEloUpdates(mp, participants){
 
 function applyMatchResults(modeKey, finishedList){
   const mp = getModeProfiles(modeKey);
+  const preElo = {};
+  finishedList.forEach(p=>{ preElo[p.key] = mp[p.key] ? mp[p.key].elo : 1000; });
   const deltas = computeEloUpdates(mp, finishedList);
+  const winner = finishedList.find(p=>p.rank===1);
+
   finishedList.forEach(p=>{
     const prof = mp[p.key] || (mp[p.key]=freshProfile(p.name));
     prof.name = p.name;
     prof.games++;
-    if(p.rank===1) prof.wins++;
+    const won = p.rank===1;
+    if(won) prof.wins++;
     if(p.rank<=3) prof.top3++;
     prof.rankSum += p.rank;
+    prof.wallsPlaced = (prof.wallsPlaced||0) + (p.wallsPlaced||0);
+    if(won){
+      prof.streak = (prof.streak||0) + 1;
+      prof.bestStreak = Math.max(prof.bestStreak||0, prof.streak);
+      if(typeof p.finishRound==='number' && (prof.fastestWin==null || p.finishRound<prof.fastestWin)){
+        prof.fastestWin = p.finishRound;
+      }
+    } else {
+      prof.streak = 0;
+    }
     prof.elo = Math.round((prof.elo + deltas[p.key]) * 10)/10;
   });
+
+  // Größter Außenseiter-Sieg: hat der Gewinner jemanden mit deutlich höherer Elo geschlagen?
+  if(winner){
+    const wProf = mp[winner.key];
+    let maxGap = 0, beatenName = '';
+    finishedList.forEach(o=>{
+      if(o.key===winner.key) return;
+      const gap = preElo[o.key] - preElo[winner.key];
+      if(gap>maxGap){ maxGap=gap; beatenName=o.name; }
+    });
+    if(maxGap>0 && wProf && (!wProf.biggestUpset || maxGap>wProf.biggestUpset.margin)){
+      wProf.biggestUpset = { margin:Math.round(maxGap), beatenName, date:new Date().toLocaleDateString('de-DE') };
+    }
+  }
+
   persistProfiles();
   return deltas;
 }
@@ -555,6 +689,18 @@ let state = null;
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 
+/* ============================ Sidebar-Schublade (Tablet/iPad/Handy) ============================ */
+const sidebarEl = document.getElementById('sidebar');
+const sidebarBackdropEl = document.getElementById('sidebarBackdrop');
+function openSidebar(){ sidebarEl.classList.add('open'); sidebarBackdropEl.classList.add('show'); }
+function closeSidebar(){ sidebarEl.classList.remove('open'); sidebarBackdropEl.classList.remove('show'); }
+function closeSidebarIfNarrow(){ if(window.innerWidth<=1180) closeSidebar(); }
+document.getElementById('sidebarToggle').addEventListener('click', ()=>{
+  sidebarEl.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+document.getElementById('sidebarClose').addEventListener('click', closeSidebar);
+sidebarBackdropEl.addEventListener('click', closeSidebar);
+
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('playAgainBtn').addEventListener('click', ()=>{ document.getElementById('winOverlay').classList.remove('show'); startGame(); });
 document.getElementById('closeResultBtn').addEventListener('click', ()=> document.getElementById('winOverlay').classList.remove('show'));
@@ -566,7 +712,7 @@ document.getElementById('resetProfilesBtn').addEventListener('click', ()=>{
     getModeProfiles('standard');
     currentModeTab = 'standard';
     persistProfiles(); persistH2H(); persistHistory();
-    renderBotList(); renderModeTabs(); renderProfileTable(); renderHistory(); initProfileNameInputs();
+    renderBotList(); renderModeTabs(); renderProfileTable(); renderRecords(); renderHistory(); initProfileNameInputs();
   }
 });
 document.getElementById('resetModeBtn').addEventListener('click', ()=>{
@@ -576,7 +722,7 @@ document.getElementById('resetModeBtn').addEventListener('click', ()=>{
     HISTORY = HISTORY.filter(h=>h.modeKey!==currentModeTab);
     getModeProfiles(currentModeTab);
     persistProfiles(); persistH2H(); persistHistory();
-    renderBotList(); renderModeTabs(); renderProfileTable(); renderHistory();
+    renderBotList(); renderModeTabs(); renderProfileTable(); renderRecords(); renderHistory();
   }
 });
 document.getElementById('wallModeBtn').addEventListener('click', ()=>{
@@ -601,7 +747,7 @@ document.getElementById('autoMode').addEventListener('change', function(){
   document.getElementById('sel5').disabled = on;
   document.getElementById('sel10').disabled = on;
   document.getElementById('sel19').disabled = on;
-  if(on) startForeverLiveGame();
+  if(on){ startForeverLiveGame(); closeSidebarIfNarrow(); }
 });
 document.getElementById('pauseBtn').addEventListener('click', ()=>{
   if(!state || state.over) return;
@@ -626,7 +772,7 @@ function renderModeTabs(){
   el.querySelectorAll('button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       currentModeTab = btn.dataset.mode;
-      renderModeTabs(); renderProfileTable(); renderHistory();
+      renderModeTabs(); renderProfileTable(); renderRecords(); renderHistory();
     });
   });
 }
@@ -638,16 +784,47 @@ function renderProfileTable(){
     const winrate = p.games? Math.round(100*p.wins/p.games)+'%' : '—';
     const avgRank = p.games? (p.rankSum/p.games).toFixed(1) : '—';
     const isHuman = p.key==='human' || p.key==='human2';
+    const streakTxt = p.streak>0 ? '🔥'+p.streak : '—';
     return `<tr style="${isHuman?'color:var(--accent); font-weight:700;':''}">
-      <td>${i+1}</td><td>${isHuman?'👤 ':''}${p.name}</td><td>${Math.round(p.elo)}</td>
-      <td>${p.games}</td><td>${p.wins}</td><td>${winrate}</td><td>${avgRank}</td><td>${p.top3}</td>
+      <td>${i+1}</td><td>${eloTier(p.elo)} ${isHuman?'👤 ':''}${p.name}</td><td>${Math.round(p.elo)}</td>
+      <td>${p.games}</td><td>${p.wins}</td><td>${winrate}</td><td>${avgRank}</td><td>${p.top3}</td><td>${streakTxt}</td>
     </tr>`;
   }).join('');
+}
+function renderRecords(){
+  const mp = getModeProfiles(currentModeTab);
+  const entries = Object.keys(mp).map(k=>({key:k, ...mp[k]})).filter(e=>e.games>0);
+  const el = document.getElementById('recordsPanel');
+  if(!entries.length){
+    el.innerHTML = '<div class="recTile"><span class="recIcon">📭</span><span>Noch keine Rekorde in diesem Modus — spiel ein paar Partien!</span></div>';
+    return;
+  }
+  const tiles = [];
+  const bestElo = entries.slice().sort((a,b)=>b.elo-a.elo)[0];
+  tiles.push(`<div class="recTile"><span class="recIcon">👑</span><b>${bestElo.name}</b><span>${Math.round(bestElo.elo)} Elo — Spitzenreiter</span></div>`);
+
+  const bestStreak = entries.slice().sort((a,b)=>(b.bestStreak||0)-(a.bestStreak||0))[0];
+  if(bestStreak.bestStreak>0) tiles.push(`<div class="recTile"><span class="recIcon">🔥</span><b>${bestStreak.name}</b><span>${bestStreak.bestStreak}er-Siegesserie</span></div>`);
+
+  const fastestArr = entries.filter(e=>e.fastestWin!=null).sort((a,b)=>a.fastestWin-b.fastestWin);
+  if(fastestArr.length) tiles.push(`<div class="recTile"><span class="recIcon">⚡</span><b>${fastestArr[0].name}</b><span>Sieg in ${fastestArr[0].fastestWin} Runden</span></div>`);
+
+  const wallKing = entries.slice().sort((a,b)=>(b.wallsPlaced||0)-(a.wallsPlaced||0))[0];
+  if(wallKing.wallsPlaced>0) tiles.push(`<div class="recTile"><span class="recIcon">🧱</span><b>${wallKing.name}</b><span>${wallKing.wallsPlaced} Mauern insgesamt gesetzt</span></div>`);
+
+  const upsetArr = entries.filter(e=>e.biggestUpset).sort((a,b)=>b.biggestUpset.margin-a.biggestUpset.margin);
+  if(upsetArr.length) tiles.push(`<div class="recTile"><span class="recIcon">😱</span><b>${upsetArr[0].name}</b><span>schlug ${upsetArr[0].biggestUpset.beatenName} (+${upsetArr[0].biggestUpset.margin} Elo Unterschied)</span></div>`);
+
+  const mostGames = entries.slice().sort((a,b)=>b.games-a.games)[0];
+  tiles.push(`<div class="recTile"><span class="recIcon">🎮</span><b>${mostGames.name}</b><span>${mostGames.games} Partien gespielt</span></div>`);
+
+  el.innerHTML = tiles.join('');
 }
 function openProfileOverlay(){
   getModeProfiles('standard');
   renderModeTabs();
   renderProfileTable();
+  renderRecords();
   renderHistory();
   document.getElementById('profileOverlay').classList.add('show');
 }
@@ -705,6 +882,7 @@ function startGame(){
   else document.getElementById('h2hBar').style.display='none';
   startAnimLoop();
   scheduleNextTurn();
+  closeSidebarIfNarrow();
 }
 
 /* ============================ Vollzufalls-Dauerlauf ============================ */
@@ -788,6 +966,7 @@ function buildState(cfgArg, participants){
       key:part.key, id:i, human:part.human, humanIndex:part.humanIndex, bot:part.bot,
       r,c, goalRow:center, goalCol:center, startEdge:edge,
       wallsLeft: cfgArg.wallsPerPlayer,
+      wallsPlaced: 0, finishRound: null,
       color: cfgArg.theme.palette[i % cfgArg.theme.palette.length],
       team: cfgArg.teamMode ? (i%2) : null,
       alive:true, finished:false, rank:null,
@@ -895,6 +1074,7 @@ function tryPlaceWall(type,r,c,playerId){
     return false;
   }
   if(!cfg.unlimitedWalls) p.wallsLeft--;
+  p.wallsPlaced = (p.wallsPlaced||0) + 1;
   if(cfg.wallExpire) state.wallLog.push({type,r,c,round:state.round,ownerId:playerId});
   playBeep(300,0.08);
   return true;
@@ -969,6 +1149,7 @@ function movePlayer(p,r,c){
   playBeep(p.human?440:380, 0.05);
   if(r===p.goalRow && c===p.goalCol){
     p.finished=true;
+    p.finishRound = state.round;
     state.finishOrder.push(p.id);
     p.rank = state.finishOrder.length;
     playBeep(880,0.3);
@@ -982,21 +1163,20 @@ function movePlayer(p,r,c){
 // still feel less sharp without ever wandering backwards ("hin und her").
 function pickBotMove(p, moves, dist){
   const ranked = moves.map(m=>({m, d:bfsToGoal(p, m[0], m[1]).dist})).sort((a,b)=>a.d-b.d);
-  const persona = p.bot || {skill:0.8};
-  if(Math.random() < persona.skill) return ranked[0].m;
+  const skill = personaSkill(p, cfg);
+  if(Math.random() < skill) return ranked[0].m;
   const nonRegress = ranked.filter(x=>x.d<=dist);
   const pool = nonRegress.length ? nonRegress : [ranked[0]];
   return pool[Math.floor(Math.random()*pool.length)].m;
 }
 function botTurn(p){
   if(state.over) return;
-  const persona = p.bot || {aggr:0.4, skill:0.8};
   const {dist} = bfsToGoal(p, p.r, p.c);
   const moves = legalMoves(p);
 
   let placedWall=false;
   const hasWalls = cfg.unlimitedWalls || p.wallsLeft>0;
-  if(hasWalls && Math.random() < persona.aggr){
+  if(hasWalls && Math.random() < personaAggr(p, cfg)){
     const rival = findLeadingRival(p);
     if(rival) placedWall = attemptBlockingWall(p, rival);
   }
@@ -1065,12 +1245,32 @@ function endGame(){
   state.over=true;
   clearTimeout(state.timer);
   const ranked = state.players.filter(p=>p.rank!=null).sort((a,b)=>a.rank-b.rank);
-  const forElo = ranked.map(p=>({key:p.key, name:stripEmoji(p.name), rank:p.rank}));
+  const forElo = ranked.map(p=>({key:p.key, name:stripEmoji(p.name), rank:p.rank, finishRound:p.finishRound, wallsPlaced:p.wallsPlaced||0}));
   const deltas = applyMatchResults(state.modeKey, forElo);
   addHistoryEntry(state.modeKey, ranked, state.size);
   updateH2HAfterGame(state.modeKey, forElo);
 
   if(SIM_SILENT) return; // Stats sind gespeichert — UI/Sound/Overlay während des Nachsimulierens überspringen
+
+  FOREVER_CONFIG.lastActive = Date.now();
+  persistForeverConfig();
+
+  const foreverOn = document.getElementById('autoMode').checked;
+  if(foreverOn){
+    // Im Dauerlauf KEIN vollflächiges Overlay — sonst sieht man vom eigentlichen
+    // Spielgeschehen kaum etwas, weil es staendig verdeckt wird. Stattdessen ein
+    // kurzer Toast direkt ueber dem sichtbaren Spielfeld, dann sofort die naechste Partie.
+    playBeep(660,0.12);
+    const podium = ranked.slice(0,3).map(p=>(p.rank===1?'🥇':p.rank===2?'🥈':'🥉')+' '+p.name).join('  ·  ');
+    showMsg('🏁 '+modeLabel(state.modeKey)+' beendet — '+podium);
+    updateTurnInfo();
+    renderBotList();
+    setTimeout(()=>{
+      if(!document.getElementById('autoMode').checked) return;
+      startForeverLiveGame();
+    }, 900);
+    return;
+  }
 
   playBeep(660,0.15);
   setTimeout(()=>playBeep(990,0.35),150);
@@ -1109,27 +1309,15 @@ function endGame(){
   document.getElementById('winOverlay').classList.add('show');
   updateTurnInfo();
   renderBotList();
-
-  FOREVER_CONFIG.lastActive = Date.now();
-  persistForeverConfig();
-
-  if(document.getElementById('autoMode').checked){
-    setTimeout(()=>{
-      if(!document.getElementById('autoMode').checked) return;
-      document.getElementById('winOverlay').classList.remove('show');
-      startForeverLiveGame();
-    }, 2000);
-  }
 }
 
 /* ============================ Headless-Simulation (Nachholen verpasster Partien) ============================ */
 function simBotTurn(p){
-  const persona = p.bot || {aggr:0.4, skill:0.8};
   const {dist} = bfsToGoal(p, p.r, p.c);
   const moves = legalMoves(p);
   let placedWall=false;
   const hasWalls = cfg.unlimitedWalls || p.wallsLeft>0;
-  if(hasWalls && Math.random() < persona.aggr){
+  if(hasWalls && Math.random() < personaAggr(p, cfg)){
     const rival = findLeadingRival(p);
     if(rival) placedWall = attemptBlockingWall(p, rival);
   }
